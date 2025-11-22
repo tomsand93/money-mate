@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}דשבורד - MoneyMate{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2 class="page-title">דשבורד - {{ report.month_name }} {{ report.year }}</h2>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card income">
+            <div class="card-icon">💵</div>
+            <div class="card-content">
+                <div class="card-label">הכנסות</div>
+                <div class="card-value">₪{{ total_income|currency }}</div>
+            </div>
+        </div>
+
+        <div class="card expenses">
+            <div class="card-icon">💳</div>
+            <div class="card-content">
+                <div class="card-label">הוצאות</div>
+                <div class="card-value">₪{{ (report.total_cc_expenses + 4400)|currency }}</div>
+            </div>
+        </div>
+
+        <div class="card {{ 'savings-good' if investment_analysis.actual_percentage >= 20 else 'savings-low' }}">
+            <div class="card-icon">💰</div>
+            <div class="card-content">
+                <div class="card-label">חיסכון</div>
+                <div class="card-value">₪{{ investment_analysis.actual_savings|currency }}</div>
+                <div class="card-subtitle">{{ investment_analysis.actual_percentage|round(1) }}%</div>
+            </div>
+        </div>
+
+        <div class="card transactions">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+                <div class="card-label">עסקאות</div>
+                <div class="card-value">{{ report.stats.total_transactions }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations Panel -->
+    <div class="recommendations-panel">
+        <h3>💡 המלצות לחיסכון</h3>
+        <ul class="recommendations-list">
+            {% for recommendation in recommendations %}
+            <li>{{ recommendation }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- 50/30/20 Rule Analysis -->
+    <div class="rule-analysis">
+        <h3>📊 ניתוח כלל 50/30/20</h3>
+        <p class="rule-description">
+            כלל 50/30/20 ממליץ: 50% צרכים, 30% רצונות, 20% חיסכון והשקעות
+        </p>
+
+        <div class="rule-grid">
+            <!-- Needs -->
+            <div class="rule-card needs-card">
+                <div class="rule-header">
+                    <h4>🏠 צרכים</h4>
+                    <span class="rule-badge {{ 'badge-good' if spending_analysis.needs.status == 'good' else 'badge-warning' }}">
+                        {{ spending_analysis.needs.percentage|round(1) }}%
+                    </span>
+                </div>
+                <div class="rule-bar">
+                    <div class="rule-bar-fill needs-fill" style="width: {{ [spending_analysis.needs.percentage, 100]|min }}%"></div>
+                    <div class="rule-bar-target" style="left: {{ spending_analysis.needs.target }}%"></div>
+                </div>
+                <div class="rule-amount">₪{{ spending_analysis.needs.amount|currency }}</div>
+                <div class="rule-target">יעד: {{ spending_analysis.needs.target }}%</div>
+            </div>
+
+            <!-- Wants -->
+            <div class="rule-card wants-card">
+                <div class="rule-header">
+                    <h4>🎉 רצונות</h4>
+                    <span class="rule-badge {{ 'badge-good' if spending_analysis.wants.status == 'good' else 'badge-warning' }}">
+                        {{ spending_analysis.wants.percentage|round(1) }}%
+                    </span>
+                </div>
+                <div class="rule-bar">
+                    <div class="rule-bar-fill wants-fill" style="width: {{ [spending_analysis.wants.percentage, 100]|min }}%"></div>
+                    <div class="rule-bar-target" style="left: {{ spending_analysis.wants.target }}%"></div>
+                </div>
+                <div class="rule-amount">₪{{ spending_analysis.wants.amount|currency }}</div>
+                <div class="rule-target">יעד: {{ spending_analysis.wants.target }}%</div>
+            </div>
+
+            <!-- Investment/Savings -->
+            <div class="rule-card invest-card">
+                <div class="rule-header">
+                    <h4>💎 חיסכון והשקעות</h4>
+                    <span class="rule-badge {{ 'badge-excellent' if investment_analysis.status == 'excellent' else 'badge-warning' }}">
+                        {{ investment_analysis.actual_percentage|round(1) }}%
+                    </span>
+                </div>
+                <div class="rule-bar">
+                    <div class="rule-bar-fill invest-fill" style="width: {{ [investment_analysis.actual_percentage, 100]|min }}%"></div>
+                    <div class="rule-bar-target" style="left: {{ investment_analysis.target_percentage }}%"></div>
+                </div>
+                <div class="rule-amount">₪{{ investment_analysis.actual_savings|currency }}</div>
+                <div class="rule-target">יעד: {{ investment_analysis.target_percentage }}%</div>
+            </div>
+        </div>
+
+        <!-- Pie Chart for 50/30/20 Distribution -->
+        <div class="chart-container">
+            <canvas id="needWantInvestChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="category-section">
+        <h3>📁 פילוח לפי קטגוריות</h3>
+        <div class="chart-grid">
+            <div class="chart-container">
+                <canvas id="categoryPieChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="categoryBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Expenses -->
+    {% if report.top_expenses %}
+    <div class="top-expenses">
+        <h3>💸 10 ההוצאות הגדולות</h3>
+        <table class="expenses-table">
+            <thead>
+                <tr>
+                    <th>תאריך</th>
+                    <th>בית עסק</th>
+                    <th>קטגוריה</th>
+                    <th>סכום</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in report.top_expenses %}
+                <tr>
+                    <td>{{ expense.purchase_date.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ expense.business_name }}</td>
+                    <td><span class="category-badge">{{ expense.category }}</span></td>
+                    <td class="amount">₪{{ expense.billing_amount|currency }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Color palette
+    const colors = {
+        needs: '#667eea',
+        wants: '#fa709a',
+        invest: '#43e97b',
+        categories: [
+            '#667eea', '#764ba2', '#f093fb', '#4facfe',
+            '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+            '#a8edea', '#fed6e3', '#ff6b6b', '#4ecdc4'
+        ]
+    };
+
+    // 1. 50/30/20 Pie Chart
+    const nwiCtx = document.getElementById('needWantInvestChart').getContext('2d');
+    new Chart(nwiCtx, {
+        type: 'pie',
+        data: {
+            labels: ['צרכים', 'רצונות', 'חיסכון והשקעות'],
+            datasets: [{
+                data: [
+                    {{ spending_analysis.needs.percentage|round(1) }},
+                    {{ spending_analysis.wants.percentage|round(1) }},
+                    {{ investment_analysis.actual_percentage|round(1) }}
+                ],
+                backgroundColor: [colors.needs, colors.wants, colors.invest]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'התפלגות הוצאות - צרכים, רצונות וחיסכון',
+                    font: { size: 16 }
+                },
+                legend: {
+                    position: 'bottom',
+                    rtl: true
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.toFixed(1) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Category Pie Chart
+    const categoryLabels = [{% for category in report.category_summary.keys() %}'{{ category }}'{{ ', ' if not loop.last else '' }}{% endfor %}];
+    const categoryValues = [{% for data in report.category_summary.values() %}{{ data['סכום'] }}{{ ', ' if not loop.last else '' }}{% endfor %}];
+
+    const catPieCtx = document.getElementById('categoryPieChart').getContext('2d');
+    new Chart(catPieCtx, {
+        type: 'pie',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryValues,
+                backgroundColor: colors.categories.slice(0, categoryLabels.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'התפלגות הוצאות לפי קטגוריות',
+                    font: { size: 14 }
+                },
+                legend: {
+                    position: 'right',
+                    rtl: true
+                }
+            }
+        }
+    });
+
+    // 3. Category Bar Chart
+    const catBarCtx = document.getElementById('categoryBarChart').getContext('2d');
+    new Chart(catBarCtx, {
+        type: 'bar',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                label: 'סכום',
+                data: categoryValues,
+                backgroundColor: colors.categories.slice(0, categoryLabels.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'הוצאות לפי קטגוריות',
+                    font: { size: 14 }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₪' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

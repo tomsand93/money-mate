@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="upload-page">
+    <h2 class="page-title">העלאת קובץ כרטיס אשראי</h2>
+
+    {% if ollama_available %}
+    <div class="alert alert-success">
+        ✅ מנוע הבינה המלאכותית זמין! הקבצים יסווגו אוטומטית
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        ⚠️ מנוע הבינה המלאכותית לא זמין. יבוצע סיווג בשיטה המסורתית.
+        <br>להפעלת AI, התקן והפעל את Ollama עם המודל llama3.2
+    </div>
+    {% endif %}
+
+    <div class="upload-container" style="max-width: 600px; margin: 2rem auto;">
+        <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem; color: var(--dark);">
+                        בחר קובץ Excel (.xlsx, .xls)
+                    </label>
+                    <input type="file" name="file" accept=".xlsx,.xls" required
+                           style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s;">
+                    📤 העלה ועבד קובץ
+                </button>
+            </form>
+        </div>
+
+        <div style="margin-top: 2rem; background: #f7fafc; padding: 1.5rem; border-radius: 10px;">
+            <h4 style="color: var(--primary-color); margin-bottom: 1rem;">📝 הוראות:</h4>
+            <ol style="color: #666; line-height: 1.8;">
+                <li>הורד את קובץ ה-Excel מאתר כרטיס האשראי שלך</li>
+                <li>שם הקובץ צריך לכלול את החודש והשנה (למשל: transactions_01_2024.xlsx)</li>
+                <li>העלה את הקובץ באמצעות הטופס למעלה</li>
+                <li>המערכת תסווג אוטומטית את ההוצאות</li>
+                <li>אם AI מופעל - תקבל סיווג מדויק יותר</li>
+            </ol>
+        </div>
+
+        <div style="margin-top: 2rem; background: #e6fffa; padding: 1.5rem; border-radius: 10px; border-right: 4px solid var(--success-color);">
+            <h4 style="color: #0a7029; margin-bottom: 0.5rem;">💡 טיפ:</h4>
+            <p style="color: #0a7029; margin: 0;">
+                כדי להפעיל את מנוע הבינה המלאכותית, התקן Ollama והרץ:
+                <br>
+                <code style="background: white; padding: 0.3rem 0.8rem; border-radius: 5px; display: inline-block; margin-top: 0.5rem;">
+                    ollama run llama3.2
+                </code>
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+</style>
+{% endblock %}

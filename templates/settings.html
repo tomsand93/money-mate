@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="settings-page">
+    <h2 class="page-title">הגדרות</h2>
+
+    <div class="settings-container" style="max-width: 800px;">
+        <!-- AI Status -->
+        <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">🤖 סטטוס בינה מלאכותית</h3>
+
+            {% if ollama_available %}
+            <div class="alert alert-success">
+                ✅ Ollama פעיל ומוכן לשימוש
+                <br>
+                <small>מודל: {{ config.ai.model }}</small>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                ⚠️ Ollama לא זמין
+                <br>
+                <small>להתקנה: <a href="https://ollama.ai" target="_blank" style="color: var(--primary-color);">https://ollama.ai</a></small>
+                <br>
+                <small>לאחר התקנה הרץ: <code style="background: white; padding: 0.2rem 0.5rem; border-radius: 3px;">ollama run {{ config.ai.model }}</code></small>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 1rem;">
+                <p style="color: #666; margin-bottom: 0.5rem;"><strong>רף ביטחון:</strong> {{ config.ai.confidence_threshold }}</p>
+                <p style="color: #666; margin-bottom: 0.5rem;"><strong>למידה מופעלת:</strong> {{ 'כן' if config.ai.enable_learning else 'לא' }}</p>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">📁 קטגוריות</h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                {% for category in config.categories.keys() %}
+                <div style="background: #f7fafc; padding: 0.8rem; border-radius: 8px; border-right: 4px solid var(--primary-color);">
+                    <strong style="color: var(--dark);">{{ category }}</strong>
+                    <br>
+                    <small style="color: #666;">{{ config.categories[category]|length }} מילות מפתח</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 50/30/20 Rule Settings -->
+        <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">📊 כלל 50/30/20</h3>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--dark); margin-bottom: 0.5rem;">צרכים ({{ config.need_want_invest.target_percentages.needs }}%)</h4>
+                <div style="color: #666;">{{ config.need_want_invest.needs|join(', ') }}</div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--dark); margin-bottom: 0.5rem;">רצונות ({{ config.need_want_invest.target_percentages.wants }}%)</h4>
+                <div style="color: #666;">{{ config.need_want_invest.wants|join(', ') }}</div>
+            </div>
+
+            <div>
+                <h4 style="color: var(--dark); margin-bottom: 0.5rem;">חיסכון והשקעות ({{ config.need_want_invest.target_percentages.invest }}%)</h4>
+                <div style="color: #666;">מחושב אוטומטית מההכנסות וההוצאות</div>
+            </div>
+        </div>
+
+        <!-- Database Info -->
+        <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">💾 מידע מערכת</h3>
+
+            <div style="color: #666;">
+                <p style="margin-bottom: 0.5rem;"><strong>קובץ בסיס נתונים:</strong> {{ config.database_file }}</p>
+                <p style="margin-bottom: 0.5rem;"><strong>תיקיית קלט:</strong> {{ config.input_folder }}</p>
+                <p style="margin-bottom: 0.5rem;"><strong>תיקיית פלט:</strong> {{ config.output_folder }}</p>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="settings-section" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); padding: 2rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">📖 איך להתקין Ollama</h3>
+
+            <ol style="color: #666; line-height: 1.8;">
+                <li>גש לאתר <a href="https://ollama.ai" target="_blank" style="color: var(--primary-color);">ollama.ai</a></li>
+                <li>הורד והתקן את Ollama למערכת ההפעלה שלך</li>
+                <li>פתח טרמינל והרץ: <code style="background: white; padding: 0.2rem 0.5rem; border-radius: 3px;">ollama run llama3.2</code></li>
+                <li>המתן להורדת המודל (פעם ראשונה בלבד)</li>
+                <li>רענן את הדף - Ollama אמור להיות זמין!</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}

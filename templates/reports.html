@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="reports-page">
+    <h2 class="page-title">כל הדוחות</h2>
+
+    {% if reports %}
+    <div class="reports-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+        {% for report in reports %}
+        <div class="report-card" style="background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">{{ report.month_name }} {{ report.year }}</h3>
+
+            <div class="report-stats" style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #666;">הוצאות:</span>
+                    <strong style="color: var(--dark);">₪{{ report.total_cc_expenses|currency }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #666;">עסקאות:</span>
+                    <strong style="color: var(--dark);">{{ report.stats.total_transactions }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666;">ממוצע:</span>
+                    <strong style="color: var(--dark);">₪{{ report.stats.average_transaction|currency }}</strong>
+                </div>
+            </div>
+
+            <a href="{{ url_for('view_report', year=report.year, month=report.month) }}"
+               style="display: block; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.8rem; border-radius: 8px; text-decoration: none; transition: transform 0.2s;">
+                צפה בדוח המלא
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
+        <h3 style="color: #666; margin-bottom: 1rem;">עדיין אין דוחות</h3>
+        <p style="color: #999; margin-bottom: 2rem;">העלה קובצי כרטיס אשראי כדי להתחיל</p>
+        <a href="{{ url_for('upload_file') }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 2rem; border-radius: 10px; text-decoration: none;">
+            העלה קובץ עכשיו
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+.report-card a:hover {
+    transform: scale(1.02);
+}
+</style>
+{% endblock %}

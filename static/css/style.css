@@ -1,0 +1,474 @@
+/* MoneyMate - Modern CSS Styling */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #43e97b;
+    --warning-color: #fa709a;
+    --danger-color: #ff6b6b;
+    --info-color: #4facfe;
+    --dark: #2d3748;
+    --light: #f7fafc;
+    --needs-color: #667eea;
+    --wants-color: #fa709a;
+    --invest-color: #43e97b;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    direction: rtl;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar */
+.navbar {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+}
+
+.nav-brand h1 {
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    margin-bottom: 0.2rem;
+}
+
+.tagline {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.nav-menu {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.nav-menu li a {
+    text-decoration: none;
+    color: var(--dark);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.nav-menu li a:hover,
+.nav-menu li a.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Main Content */
+.main-content {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    min-height: 70vh;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.page-title {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+}
+
+.card-content {
+    flex: 1;
+}
+
+.card-label {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.card-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--dark);
+}
+
+.card-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+}
+
+.card.income {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.card.income .card-label,
+.card.income .card-value,
+.card.income .card-subtitle {
+    color: white;
+}
+
+.card.expenses {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+}
+
+.card.expenses .card-label,
+.card.expenses .card-value,
+.card.expenses .card-subtitle {
+    color: white;
+}
+
+.card.savings-good {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: white;
+}
+
+.card.savings-good .card-label,
+.card.savings-good .card-value,
+.card.savings-good .card-subtitle {
+    color: white;
+}
+
+.card.savings-low {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+    color: white;
+}
+
+.card.savings-low .card-label,
+.card.savings-low .card-value,
+.card.savings-low .card-subtitle {
+    color: white;
+}
+
+.card.transactions {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.card.transactions .card-label,
+.card.transactions .card-value {
+    color: white;
+}
+
+/* Recommendations Panel */
+.recommendations-panel {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.recommendations-panel h3 {
+    color: var(--dark);
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.recommendations-list {
+    list-style: none;
+}
+
+.recommendations-list li {
+    padding: 0.8rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 8px;
+    border-right: 4px solid var(--warning-color);
+}
+
+/* 50/30/20 Rule Analysis */
+.rule-analysis {
+    background: #f7fafc;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.rule-analysis h3 {
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+}
+
+.rule-description {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.rule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.rule-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.rule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.rule-header h4 {
+    font-size: 1.1rem;
+    color: var(--dark);
+}
+
+.rule-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.badge-good {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-excellent {
+    background: #d1f4e0;
+    color: #0a7029;
+}
+
+.rule-bar {
+    position: relative;
+    height: 30px;
+    background: #e2e8f0;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 0.8rem;
+}
+
+.rule-bar-fill {
+    height: 100%;
+    transition: width 1s ease;
+    border-radius: 15px;
+}
+
+.needs-fill {
+    background: linear-gradient(90deg, var(--needs-color), #5568d3);
+}
+
+.wants-fill {
+    background: linear-gradient(90deg, var(--wants-color), #fe8a8a);
+}
+
+.invest-fill {
+    background: linear-gradient(90deg, var(--invest-color), #38d377);
+}
+
+.rule-bar-target {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e53e3e;
+}
+
+.rule-amount {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--dark);
+    margin-bottom: 0.3rem;
+}
+
+.rule-target {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Charts */
+.chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    max-height: 400px;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.chart-container canvas {
+    max-height: 350px;
+}
+
+/* Category Section */
+.category-section {
+    margin-bottom: 2rem;
+}
+
+.category-section h3 {
+    color: var(--dark);
+    margin-bottom: 1rem;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+thead {
+    background: var(--primary-color);
+    color: white;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: right;
+}
+
+tbody tr:nth-child(even) {
+    background: #f7fafc;
+}
+
+tbody tr:hover {
+    background: #edf2f7;
+}
+
+.amount {
+    font-weight: bold;
+    color: var(--dark);
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+/* Top Expenses */
+.top-expenses {
+    margin-bottom: 2rem;
+}
+
+.top-expenses h3 {
+    color: var(--dark);
+    margin-bottom: 1rem;
+}
+
+/* Footer */
+footer {
+    background: white;
+    padding: 1.5rem 0;
+    text-align: center;
+    color: #666;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-menu {
+        flex-direction: column;
+    }
+
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rule-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="welcome-page">
+    <div style="text-align: center; padding: 3rem;">
+        <h2 style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;">
+            ברוכים הבאים ל-MoneyMate! 💰
+        </h2>
+        <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">
+            מערכת מעקב הוצאות חכמה עם בינה מלאכותית
+        </p>
+
+        <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 3rem 0;">
+            <div class="feature-card" style="background: #f7fafc; padding: 2rem; border-radius: 10px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🤖</div>
+                <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">סיווג חכם עם AI</h3>
+                <p style="color: #666;">המערכת מזהה אוטומטית את סוג ההוצאה באמצעות בינה מלאכותית</p>
+            </div>
+
+            <div class="feature-card" style="background: #f7fafc; padding: 2rem; border-radius: 10px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">כלל 50/30/20</h3>
+                <p style="color: #666;">ניתוח אוטומטי לפי כלל 50% צרכים, 30% רצונות, 20% חיסכון</p>
+            </div>
+
+            <div class="feature-card" style="background: #f7fafc; padding: 2rem; border-radius: 10px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">💡</div>
+                <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">המלצות מותאמות</h3>
+                <p style="color: #666;">קבל המלצות אישיות לחיסכון בהתאם להרגלי ההוצאה שלך</p>
+            </div>
+
+            <div class="feature-card" style="background: #f7fafc; padding: 2rem; border-radius: 10px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📈</div>
+                <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">דוחות מפורטים</h3>
+                <p style="color: #666;">גרפים אינטראקטיביים וניתוח מעמיק של ההוצאות שלך</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 3rem;">
+            <a href="{{ url_for('upload_file') }}" class="btn-primary" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 2rem; border-radius: 10px; text-decoration: none; font-size: 1.2rem; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                התחל עכשיו - העלה קובץ ראשון 🚀
+            </a>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1.5rem; background: #fff3cd; border-radius: 10px; border: 2px solid #ffc107;">
+            <p style="color: #856404; margin: 0;">
+                <strong>💡 טיפ:</strong> כדי להפעיל את מנוע הבינה המלאכותית, ודא ש-Ollama מותקן ורץ במחשב שלך
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
