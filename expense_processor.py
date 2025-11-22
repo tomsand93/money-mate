@@ -26,12 +26,21 @@ class ExpenseProcessor:
             # First, read without header to find the actual header row
             df_temp = pd.read_excel(file_path, header=None)
 
-            # Find the row that contains 'תאריך רכישה'
+            # Find the row that contains 'תאריך רכישה' AND 'סכום חיוב'
             header_row = None
             for idx, row in df_temp.iterrows():
-                if any('תאריך רכישה' in str(cell) for cell in row if pd.notna(cell)):
+                row_str = ' '.join([str(cell) for cell in row if pd.notna(cell)])
+                # Look for both key columns to ensure we have the right header
+                if 'תאריך רכישה' in row_str and 'סכום חיוב' in row_str:
                     header_row = idx
                     break
+
+            if header_row is None:
+                # Try just looking for סכום חיוב
+                for idx, row in df_temp.iterrows():
+                    if any('סכום חיוב' in str(cell) for cell in row if pd.notna(cell)):
+                        header_row = idx
+                        break
 
             if header_row is None:
                 # Try default reading (header at row 0)
@@ -40,8 +49,10 @@ class ExpenseProcessor:
                 # Read with the correct header row
                 df = pd.read_excel(file_path, header=header_row)
 
+            # Clean up column names (remove extra spaces, newlines)
+            df.columns = [str(col).strip().replace('\n', ' ') for col in df.columns]
+
             # Normalize column names (handle variations like "שם בית עסק" vs "שם בית העסק")
-            # Rename העסק to עסק if it exists
             if 'שם בית העסק' in df.columns:
                 df = df.rename(columns={'שם בית העסק': 'שם בית עסק'})
 
@@ -50,7 +61,9 @@ class ExpenseProcessor:
             missing_cols = [col for col in required_columns if col not in df.columns]
 
             if missing_cols:
-                raise ValueError(f"Missing required columns: {missing_cols}")
+                # Show available columns to help debug
+                available = list(df.columns)
+                raise ValueError(f"Missing required columns: {missing_cols}\nAvailable columns: {available}")
 
             # Clean and prepare data
             # Israeli date format is DD.MM.YY or DD/MM/YYYY (day first!)

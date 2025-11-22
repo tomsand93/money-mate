@@ -89,7 +89,9 @@ class ExpenseDatabase:
 
         # Prepare DataFrame for insertion
         df_to_insert = df.copy()
-        df_to_insert = df_to_insert.rename(columns={
+
+        # Build column mapping dynamically (only rename columns that exist)
+        column_mapping = {
             'תאריך רכישה': 'purchase_date',
             'שם בית עסק': 'business_name',
             'סכום עסקה': 'transaction_amount',
@@ -97,14 +99,31 @@ class ExpenseDatabase:
             'סכום חיוב': 'billing_amount',
             'מטבע חיוב': 'billing_currency',
             'מס\' שובר': 'voucher_number',
+            "מס' שובר": 'voucher_number',  # Alternative apostrophe
             'פירוט נוסף': 'additional_details',
             'קטגוריה': 'category',
             'קובץ מקור': 'source_file',
             'תאריך עיבוד': 'processed_date'
-        })
+        }
 
-        # Fill missing voucher numbers with empty string for uniqueness check
-        df_to_insert['voucher_number'] = df_to_insert['voucher_number'].fillna('')
+        # Only rename columns that actually exist in the DataFrame
+        rename_dict = {k: v for k, v in column_mapping.items() if k in df_to_insert.columns}
+        df_to_insert = df_to_insert.rename(columns=rename_dict)
+
+        # Ensure required columns exist with defaults
+        if 'voucher_number' not in df_to_insert.columns:
+            df_to_insert['voucher_number'] = ''
+        else:
+            df_to_insert['voucher_number'] = df_to_insert['voucher_number'].fillna('')
+
+        if 'transaction_amount' not in df_to_insert.columns:
+            df_to_insert['transaction_amount'] = df_to_insert['billing_amount']
+        if 'transaction_currency' not in df_to_insert.columns:
+            df_to_insert['transaction_currency'] = 'ILS'
+        if 'billing_currency' not in df_to_insert.columns:
+            df_to_insert['billing_currency'] = 'ILS'
+        if 'additional_details' not in df_to_insert.columns:
+            df_to_insert['additional_details'] = ''
 
         initial_count = pd.read_sql_query("SELECT COUNT(*) as count FROM expenses", conn).iloc[0]['count']
 
