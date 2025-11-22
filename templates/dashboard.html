@@ -4,40 +4,42 @@
 
 {% block content %}
 <div class="dashboard">
-    <h2 class="page-title">דשבורד - {{ report.month_name }} {{ report.year }}</h2>
+    <h2 class="page-title">דשבורד כללי - {{ summary.months_count }} חודשים</h2>
 
     <!-- Summary Cards -->
     <div class="summary-cards">
         <div class="card income">
             <div class="card-icon">💵</div>
             <div class="card-content">
-                <div class="card-label">הכנסות</div>
-                <div class="card-value">₪{{ total_income|currency }}</div>
+                <div class="card-label">סך הכנסות</div>
+                <div class="card-value">₪{{ summary.total_income|currency }}</div>
+                <div class="card-subtitle">ממוצע: ₪{{ summary.avg_monthly_income|currency }}</div>
             </div>
         </div>
 
         <div class="card expenses">
             <div class="card-icon">💳</div>
             <div class="card-content">
-                <div class="card-label">הוצאות</div>
-                <div class="card-value">₪{{ (report.total_cc_expenses + 4400)|currency }}</div>
+                <div class="card-label">סך הוצאות</div>
+                <div class="card-value">₪{{ summary.total_expenses|currency }}</div>
+                <div class="card-subtitle">ממוצע: ₪{{ summary.avg_monthly_expenses|currency }}</div>
             </div>
         </div>
 
-        <div class="card {{ 'savings-good' if investment_analysis.actual_percentage >= 20 else 'savings-low' }}">
+        <div class="card {{ 'savings-good' if summary.savings_rate >= 20 else 'savings-low' }}">
             <div class="card-icon">💰</div>
             <div class="card-content">
-                <div class="card-label">חיסכון</div>
-                <div class="card-value">₪{{ investment_analysis.actual_savings|currency }}</div>
-                <div class="card-subtitle">{{ investment_analysis.actual_percentage|round(1) }}%</div>
+                <div class="card-label">סך חיסכון</div>
+                <div class="card-value">₪{{ summary.total_savings|currency }}</div>
+                <div class="card-subtitle">{{ summary.savings_rate|round(1) }}% | ממוצע: ₪{{ summary.avg_monthly_savings|currency }}</div>
             </div>
         </div>
 
         <div class="card transactions">
             <div class="card-icon">📊</div>
             <div class="card-content">
-                <div class="card-label">עסקאות</div>
-                <div class="card-value">{{ report.stats.total_transactions }}</div>
+                <div class="card-label">חודשים</div>
+                <div class="card-value">{{ summary.months_count }}</div>
             </div>
         </div>
     </div>
@@ -115,9 +117,36 @@
         </div>
     </div>
 
+    <!-- Monthly Comparison Table -->
+    <div class="category-section">
+        <h3>📅 השוואה בין חודשים</h3>
+        <table class="expenses-table">
+            <thead>
+                <tr>
+                    <th>חודש</th>
+                    <th>הכנסות</th>
+                    <th>הוצאות</th>
+                    <th>חיסכון</th>
+                    <th>% חיסכון</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month_report in monthly_reports %}
+                <tr>
+                    <td><a href="{{ url_for('view_report', year=month_report.year, month=month_report.month) }}" style="color: var(--primary-color); text-decoration: none;">{{ month_report.month_name }} {{ month_report.year }}</a></td>
+                    <td class="amount">₪{{ month_report.income|currency }}</td>
+                    <td class="amount">₪{{ month_report.expenses|currency }}</td>
+                    <td class="amount" style="color: {{ 'green' if month_report.savings > 0 else 'red' }}">₪{{ month_report.savings|currency }}</td>
+                    <td>{{ month_report.savings_rate|round(1) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     <!-- Category Breakdown -->
     <div class="category-section">
-        <h3>📁 פילוח לפי קטגוריות</h3>
+        <h3>📁 פילוח לפי קטגוריות (כל החודשים)</h3>
         <div class="chart-grid">
             <div class="chart-container">
                 <canvas id="categoryPieChart"></canvas>
@@ -127,33 +156,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Top Expenses -->
-    {% if report.top_expenses %}
-    <div class="top-expenses">
-        <h3>💸 10 ההוצאות הגדולות</h3>
-        <table class="expenses-table">
-            <thead>
-                <tr>
-                    <th>תאריך</th>
-                    <th>בית עסק</th>
-                    <th>קטגוריה</th>
-                    <th>סכום</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in report.top_expenses %}
-                <tr>
-                    <td>{{ expense.purchase_date.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ expense.business_name }}</td>
-                    <td><span class="category-badge">{{ expense.category }}</span></td>
-                    <td class="amount">₪{{ expense.billing_amount|currency }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
 </div>
 
 <script>
@@ -210,8 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 2. Category Pie Chart
-    const categoryLabels = [{% for category in report.category_summary.keys() %}'{{ category }}'{{ ', ' if not loop.last else '' }}{% endfor %}];
-    const categoryValues = [{% for data in report.category_summary.values() %}{{ data['סכום'] }}{{ ', ' if not loop.last else '' }}{% endfor %}];
+    const categoryLabels = [{% for category in all_categories.keys() %}'{{ category }}'{{ ', ' if not loop.last else '' }}{% endfor %}];
+    const categoryValues = [{% for data in all_categories.values() %}{{ data['סכום'] }}{{ ', ' if not loop.last else '' }}{% endfor %}];
 
     const catPieCtx = document.getElementById('categoryPieChart').getContext('2d');
     new Chart(catPieCtx, {

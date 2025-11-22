@@ -45,7 +45,7 @@ class AICategorizer:
     def categorize(self, business_name: str, amount: float = None,
                    ask_user_callback=None) -> Tuple[str, float]:
         """
-        Categorize expense using AI
+        Categorize expense using smart keyword matching (no Ollama/AI needed!)
 
         Returns:
             Tuple[str, float]: (category, confidence)
@@ -54,30 +54,13 @@ class AICategorizer:
         if business_name.lower() in self.user_corrections:
             return self.user_corrections[business_name.lower()], 1.0
 
-        # Check keyword matching first (fast path)
+        # Use enhanced keyword matching - works offline!
         keyword_category = self._keyword_match(business_name)
         if keyword_category:
             return keyword_category, 0.95
 
-        # Use AI for categorization
-        try:
-            category, confidence = self._ai_categorize(business_name, amount)
-
-            # If confidence is low, ask user
-            if confidence < self.ai_config['confidence_threshold'] and ask_user_callback:
-                user_category = ask_user_callback(business_name, category, confidence)
-                if user_category:
-                    category = user_category
-                    confidence = 1.0
-                    # Save this correction for learning
-                    if self.ai_config['enable_learning']:
-                        self._save_correction(business_name, category)
-
-            return category, confidence
-
-        except Exception as e:
-            print(f"AI categorization failed: {e}, falling back to keyword matching")
-            return keyword_category or "אחר", 0.5
+        # Fallback to "אחר" if nothing matches
+        return "אחר", 0.5
 
     def _keyword_match(self, business_name: str) -> Optional[str]:
         """Traditional keyword matching as fallback"""

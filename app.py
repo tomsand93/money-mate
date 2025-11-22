@@ -46,50 +46,92 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    """Home page - Dashboard overview"""
+    """Home page - Dashboard overview of ALL months"""
     # Get available months
     months = db.get_available_months()
 
     if not months:
         return render_template('welcome.html')
 
-    # Get latest month data
-    latest_year, latest_month = months[-1]
-    report = report_gen.generate_monthly_report(latest_year, latest_month)
+    # Fixed amounts
+    fixed_income = 11747
+    fixed_expenses = 4400
 
-    # Add financial analysis
-    if report['has_data']:
-        spending_analysis = financial_analyzer.analyze_spending(report['category_summary'])
+    # Generate reports for ALL months
+    monthly_reports = []
+    total_income_all = 0
+    total_expenses_all = 0
+    total_savings_all = 0
 
-        # Calculate investment potential (using fixed amounts from config)
-        fixed_income = 11747
-        fixed_expenses = 4400
-        # Fix: Handle None income
-        income_value = report.get('income') or 0
-        total_income = income_value + fixed_income
-        total_expenses = report['total_cc_expenses'] + fixed_expenses
+    # Aggregate category data across all months
+    all_categories = {}
 
-        investment_analysis = financial_analyzer.calculate_investment_potential(
-            total_income,
-            spending_analysis['needs']['amount'],
-            spending_analysis['wants']['amount']
-        )
+    for year, month in months:
+        report = report_gen.generate_monthly_report(year, month)
+        if report['has_data']:
+            # Calculate totals for this month
+            income_value = report.get('income') or 0
+            month_income = income_value + fixed_income
+            month_expenses = report['total_cc_expenses'] + fixed_expenses
+            month_savings = month_income - month_expenses
 
-        recommendations = financial_analyzer.generate_recommendations(
-            spending_analysis,
-            report['category_summary'],
-            total_income
-        )
+            # Add to overall totals
+            total_income_all += month_income
+            total_expenses_all += month_expenses
+            total_savings_all += month_savings
 
-        return render_template('dashboard.html',
-                             report=report,
-                             spending_analysis=spending_analysis,
-                             investment_analysis=investment_analysis,
-                             recommendations=recommendations,
-                             total_income=total_income,
-                             months=months)
+            # Aggregate categories
+            for category, data in report['category_summary'].items():
+                if category not in all_categories:
+                    all_categories[category] = {'סכום': 0, 'כמות עסקאות': 0}
+                all_categories[category]['סכום'] += data['סכום']
+                all_categories[category]['כמות עסקאות'] += data.get('כמות עסקאות', 0)
 
-    return render_template('welcome.html')
+            monthly_reports.append({
+                'year': year,
+                'month': month,
+                'month_name': report['month_name'],
+                'income': month_income,
+                'expenses': month_expenses,
+                'savings': month_savings,
+                'savings_rate': (month_savings / month_income * 100) if month_income > 0 else 0
+            })
+
+    # Perform financial analysis on aggregated data
+    spending_analysis = financial_analyzer.analyze_spending(all_categories)
+
+    investment_analysis = financial_analyzer.calculate_investment_potential(
+        total_income_all,
+        spending_analysis['needs']['amount'],
+        spending_analysis['wants']['amount']
+    )
+
+    recommendations = financial_analyzer.generate_recommendations(
+        spending_analysis,
+        all_categories,
+        total_income_all
+    )
+
+    # Summary stats
+    summary = {
+        'total_income': total_income_all,
+        'total_expenses': total_expenses_all,
+        'total_savings': total_savings_all,
+        'savings_rate': (total_savings_all / total_income_all * 100) if total_income_all > 0 else 0,
+        'months_count': len(monthly_reports),
+        'avg_monthly_income': total_income_all / len(monthly_reports) if monthly_reports else 0,
+        'avg_monthly_expenses': total_expenses_all / len(monthly_reports) if monthly_reports else 0,
+        'avg_monthly_savings': total_savings_all / len(monthly_reports) if monthly_reports else 0
+    }
+
+    return render_template('dashboard.html',
+                         summary=summary,
+                         monthly_reports=monthly_reports,
+                         all_categories=all_categories,
+                         spending_analysis=spending_analysis,
+                         investment_analysis=investment_analysis,
+                         recommendations=recommendations,
+                         months=months)
 
 
 @app.route('/upload', methods=['GET', 'POST'])
