@@ -98,7 +98,8 @@ def index():
             })
 
     # Perform financial analysis on aggregated data
-    spending_analysis = financial_analyzer.analyze_spending(all_categories)
+    # IMPORTANT: Pass total_income so percentages are calculated correctly!
+    spending_analysis = financial_analyzer.analyze_spending(all_categories, total_income_all)
 
     investment_analysis = financial_analyzer.calculate_investment_potential(
         total_income_all,
@@ -238,15 +239,15 @@ def view_report(year, month):
         flash('No data available for this month', 'error')
         return redirect(url_for('reports'))
 
-    # Add financial analysis
-    spending_analysis = financial_analyzer.analyze_spending(report['category_summary'])
-
     fixed_income = 11747
     fixed_expenses = 4400
     # Fix: Handle None income
     income_value = report.get('income') or 0
     total_income = income_value + fixed_income
     total_expenses = report['total_cc_expenses'] + fixed_expenses
+
+    # Add financial analysis - pass total_income for correct percentage calculation!
+    spending_analysis = financial_analyzer.analyze_spending(report['category_summary'], total_income)
 
     investment_analysis = financial_analyzer.calculate_investment_potential(
         total_income,

@@ -25,22 +25,25 @@ class FinancialAnalyzer:
         self.wants_categories = set(self.need_want_config['wants'])
         self.target_percentages = self.need_want_config['target_percentages']
 
-    def analyze_spending(self, category_summary: Dict[str, Dict]) -> Dict:
+    def analyze_spending(self, category_summary: Dict[str, Dict], total_income: float = None) -> Dict:
         """
         Analyze spending according to 50/30/20 rule
 
         Args:
             category_summary: Dict with category names as keys and data dicts as values
                              (must include 'סכום' key for amount)
+            total_income: Total income to calculate percentages against
 
         Returns:
             Dict with analysis results
         """
         needs_total = 0
         wants_total = 0
+        uncategorized_total = 0
 
         needs_breakdown = {}
         wants_breakdown = {}
+        uncategorized_breakdown = {}
 
         for category, data in category_summary.items():
             amount = data.get('סכום', 0)
@@ -51,15 +54,20 @@ class FinancialAnalyzer:
             elif category in self.wants_categories:
                 wants_total += amount
                 wants_breakdown[category] = amount
+            else:
+                # Track uncategorized items (like "אחר")
+                uncategorized_total += amount
+                uncategorized_breakdown[category] = amount
 
-        total_expenses = needs_total + wants_total
+        total_expenses = needs_total + wants_total + uncategorized_total
 
-        # Calculate percentages
-        needs_percentage = (needs_total / total_expenses * 100) if total_expenses > 0 else 0
-        wants_percentage = (wants_total / total_expenses * 100) if total_expenses > 0 else 0
+        # Calculate percentages based on INCOME (not expenses!)
+        # If no income provided, fall back to expenses (for backward compatibility)
+        base_amount = total_income if total_income and total_income > 0 else total_expenses
 
-        # Investment should be what's left for savings (calculated from income - expenses)
-        # This will be calculated at the dashboard level
+        needs_percentage = (needs_total / base_amount * 100) if base_amount > 0 else 0
+        wants_percentage = (wants_total / base_amount * 100) if base_amount > 0 else 0
+        uncategorized_percentage = (uncategorized_total / base_amount * 100) if base_amount > 0 else 0
 
         return {
             'needs': {
@@ -75,6 +83,11 @@ class FinancialAnalyzer:
                 'target': self.target_percentages['wants'],
                 'breakdown': wants_breakdown,
                 'status': 'good' if wants_percentage <= self.target_percentages['wants'] else 'over'
+            },
+            'uncategorized': {
+                'amount': uncategorized_total,
+                'percentage': uncategorized_percentage,
+                'breakdown': uncategorized_breakdown
             },
             'total_expenses': total_expenses
         }
