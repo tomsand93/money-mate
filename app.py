@@ -12,7 +12,6 @@ if sys.platform == 'win32':
 import os
 import json
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
-from werkzeug.utils import secure_filename
 from datetime import datetime
 from pathlib import Path
 
@@ -65,7 +64,9 @@ def index():
         # Calculate investment potential (using fixed amounts from config)
         fixed_income = 11747
         fixed_expenses = 4400
-        total_income = report.get('income', 0) + fixed_income
+        # Fix: Handle None income
+        income_value = report.get('income') or 0
+        total_income = income_value + fixed_income
         total_expenses = report['total_cc_expenses'] + fixed_expenses
 
         investment_analysis = financial_analyzer.calculate_investment_potential(
@@ -93,32 +94,39 @@ def index():
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
-    """Upload and process credit card file"""
+    """Process all credit card files from a folder"""
     if request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file selected', 'error')
+        folder_path = request.form.get('folder_path', '').strip()
+
+        if not folder_path:
+            flash('נא להזין נתיב לתיקייה', 'error')
             return redirect(request.url)
 
-        file = request.files['file']
-
-        if file.filename == '':
-            flash('No file selected', 'error')
+        if not os.path.exists(folder_path):
+            flash(f'התיקייה לא נמצאה: {folder_path}', 'error')
             return redirect(request.url)
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+        if not os.path.isdir(folder_path):
+            flash('הנתיב שהוזן אינו תיקייה', 'error')
+            return redirect(request.url)
+
+        # Process all Excel files in the folder
+        use_ai = ai_categorizer.check_ollama_available()
+        processed_count = 0
+        skipped_count = 0
+        error_count = 0
+        total_transactions = 0
+
+        for filename in os.listdir(folder_path):
+            if not (filename.endswith(('.xlsx', '.xls')) and not filename.startswith('~')):
+                continue
 
             # Check if already processed
             if db.is_file_processed(filename):
-                flash(f'File "{filename}" has already been processed', 'warning')
-                return redirect(url_for('index'))
+                skipped_count += 1
+                continue
 
-            # Save file
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-
-            # Process with AI categorization if available
-            use_ai = ai_categorizer.check_ollama_available()
+            filepath = os.path.join(folder_path, filename)
 
             try:
                 df = processor.process_file(filepath)
@@ -135,14 +143,29 @@ def upload_file():
                 new_records = db.add_expenses(df)
                 db.mark_file_processed(filename, len(df))
 
-                flash(f'Successfully processed {new_records} transactions from {filename}', 'success')
-                if use_ai:
-                    flash('AI categorization applied', 'info')
+                processed_count += 1
+                total_transactions += new_records
 
             except Exception as e:
-                flash(f'Error processing file: {str(e)}', 'error')
+                error_count += 1
+                flash(f'שגיאה בקובץ {filename}: {str(e)}', 'error')
 
-            return redirect(url_for('index'))
+        # Show summary
+        if processed_count > 0:
+            flash(f'✅ עובדו בהצלחה {processed_count} קבצים עם {total_transactions} עסקאות', 'success')
+            if use_ai:
+                flash('🤖 סיווג AI הופעל', 'info')
+
+        if skipped_count > 0:
+            flash(f'⊘ דולגו {skipped_count} קבצים שכבר עובדו', 'warning')
+
+        if error_count > 0:
+            flash(f'❌ {error_count} קבצים נכשלו', 'error')
+
+        if processed_count == 0 and skipped_count == 0 and error_count == 0:
+            flash('לא נמצאו קבצי Excel בתיקייה', 'warning')
+
+        return redirect(url_for('index'))
 
     # Check if Ollama is available
     ollama_available = ai_categorizer.check_ollama_available()
@@ -178,7 +201,9 @@ def view_report(year, month):
 
     fixed_income = 11747
     fixed_expenses = 4400
-    total_income = report.get('income', 0) + fixed_income
+    # Fix: Handle None income
+    income_value = report.get('income') or 0
+    total_income = income_value + fixed_income
     total_expenses = report['total_cc_expenses'] + fixed_expenses
 
     investment_analysis = financial_analyzer.calculate_investment_potential(
