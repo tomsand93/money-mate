@@ -37,9 +37,31 @@ class ExpenseDatabase:
                 category TEXT NOT NULL,
                 source_file TEXT,
                 processed_date TIMESTAMP,
+                classification_method TEXT,
+                classification_confidence REAL,
+                classification_reason TEXT,
+                manually_edited INTEGER DEFAULT 0,
                 UNIQUE(purchase_date, business_name, billing_amount, voucher_number)
             )
         ''')
+
+        # Add new columns to existing expenses table if they don't exist
+        try:
+            cursor.execute("ALTER TABLE expenses ADD COLUMN classification_method TEXT")
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE expenses ADD COLUMN classification_confidence REAL")
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE expenses ADD COLUMN classification_reason TEXT")
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE expenses ADD COLUMN manually_edited INTEGER DEFAULT 0")
+        except:
+            pass
 
         # Monthly income table
         cursor.execute('''
@@ -74,6 +96,28 @@ class ExpenseDatabase:
                 filename TEXT UNIQUE NOT NULL,
                 processed_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 record_count INTEGER
+            )
+        ''')
+
+        # User settings table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Fixed monthly expenses table (non-credit card expenses)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fixed_expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                category TEXT NOT NULL,
+                expense_type TEXT NOT NULL,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(description)
             )
         ''')
 
@@ -258,3 +302,124 @@ class ExpenseDatabase:
         conn.close()
 
         return results
+
+    # User Settings Methods
+    def get_setting(self, key: str, default=None):
+        """Get a user setting value"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT value FROM user_settings WHERE key = ?', (key,))
+        result = cursor.fetchone()
+
+        conn.close()
+        return result[0] if result else default
+
+    def set_setting(self, key: str, value: str):
+        """Set a user setting value"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT OR REPLACE INTO user_settings (key, value, updated_date)
+            VALUES (?, ?, ?)
+        ''', (key, value, datetime.now()))
+
+        conn.commit()
+        conn.close()
+
+    def is_onboarding_complete(self) -> bool:
+        """Check if user has completed onboarding"""
+        return self.get_setting('onboarding_complete', 'false') == 'true'
+
+    def mark_onboarding_complete(self):
+        """Mark onboarding as complete"""
+        self.set_setting('onboarding_complete', 'true')
+
+    # Fixed Expenses Methods
+    def add_fixed_expense(self, description: str, amount: float, category: str, expense_type: str):
+        """Add a fixed expense (like rent, utilities, etc.)"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT OR REPLACE INTO fixed_expenses (description, amount, category, expense_type, created_date)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (description, amount, category, expense_type, datetime.now()))
+
+        conn.commit()
+        conn.close()
+
+    def get_all_fixed_expenses(self) -> List[Dict]:
+        """Get all fixed expenses"""
+        conn = self.get_connection()
+        df = pd.read_sql_query('SELECT * FROM fixed_expenses ORDER BY expense_type, category', conn)
+        conn.close()
+
+        return df.to_dict('records') if len(df) > 0 else []
+
+    def delete_fixed_expense(self, expense_id: int):
+        """Delete a fixed expense"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM fixed_expenses WHERE id = ?', (expense_id,))
+
+        conn.commit()
+        conn.close()
+
+    def get_total_fixed_expenses(self) -> float:
+        """Get total amount of all fixed expenses"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT SUM(amount) FROM fixed_expenses')
+        result = cursor.fetchone()
+
+        conn.close()
+        return result[0] if result and result[0] else 0.0
+
+    def get_fixed_expenses_by_type(self) -> Dict:
+        """Get fixed expenses grouped by expense type (needs, wants, invest)"""
+        conn = self.get_connection()
+        df = pd.read_sql_query('''
+            SELECT expense_type, category, SUM(amount) as total
+            FROM fixed_expenses
+            GROUP BY expense_type, category
+        ''', conn)
+        conn.close()
+
+        result = {'needs': {}, 'wants': {}, 'invest': {}}
+        for _, row in df.iterrows():
+            exp_type = row['expense_type']
+            category = row['category']
+            total = row['total']
+            if exp_type not in result:
+                result[exp_type] = {}
+            result[exp_type][category] = total
+
+        return result
+
+    def update_expense_category(self, expense_id: int, new_category: str):
+        """Update an expense's category and mark as manually edited"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            UPDATE expenses
+            SET category = ?, manually_edited = 1
+            WHERE id = ?
+        ''', (new_category, expense_id))
+
+        conn.commit()
+        conn.close()
+
+    def get_expense_by_id(self, expense_id: int) -> Optional[Dict]:
+        """Get a single expense by ID"""
+        conn = self.get_connection()
+        df = pd.read_sql_query('SELECT * FROM expenses WHERE id = ?', conn, params=(expense_id,))
+        conn.close()
+
+        if len(df) > 0:
+            return df.iloc[0].to_dict()
+        return None

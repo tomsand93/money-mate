@@ -7,9 +7,13 @@
 <div class="dashboard">
     <h2 class="page-title">📅 {{ report.month_name }} {{ report.year }}</h2>
 
-    <div style="margin-bottom: 1rem;">
+    <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
         <a href="{{ url_for('reports') }}" style="color: var(--primary-color); text-decoration: none;">
             ← חזרה לכל הדוחות
+        </a>
+        <a href="{{ url_for('view_expenses', year=report.year, month=report.month) }}"
+           style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; transition: transform 0.2s;">
+            📋 צפה בכל ההוצאות
         </a>
     </div>
 

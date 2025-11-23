@@ -37,30 +37,85 @@ class AICategorizer:
         return {}
 
     def _save_correction(self, business_name: str, category: str):
-        """Save user correction for future learning"""
+        """Save user correction for future learning and update keywords dynamically"""
+        # Save to user corrections
         self.user_corrections[business_name.lower()] = category
         with open(self.corrections_file, 'w', encoding='utf-8') as f:
             json.dump(self.user_corrections, f, ensure_ascii=False, indent=2)
 
+        # Extract meaningful keywords from business name and add to category
+        if self.ai_config.get('enable_learning', True):
+            self._learn_from_correction(business_name, category)
+
+    def _learn_from_correction(self, business_name: str, category: str):
+        """Extract keywords from business name and add to category keywords"""
+        # Split business name into words
+        words = business_name.lower().split()
+
+        # Filter out common non-meaningful words
+        stop_words = {'בע"מ', 'בעמ', 'ltd', 'inc', 'ש.ע', 'שע', 'חנות', 'סניף', 'מס', 'מספר'}
+
+        # Get current keywords for this category
+        current_keywords = set(k.lower() for k in self.config['categories'].get(category, []))
+
+        # Find new meaningful keywords (words that aren't already keywords)
+        new_keywords = []
+        for word in words:
+            # Clean the word
+            word = word.strip('.,;:!?()"\'')
+
+            # Skip if too short, is a stop word, or already exists
+            if len(word) < 3 or word in stop_words or word in current_keywords:
+                continue
+
+            # Check if this word appears in the business name of other expenses with same category
+            # For now, we'll add it if it's a substantial word
+            if len(word) >= 4:  # Only add words with 4+ characters
+                new_keywords.append(word)
+
+        # Add new keywords to config if any found
+        if new_keywords:
+            config_path = Path('config_ai.json')
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+
+            # Add new keywords to the category
+            if category not in config['categories']:
+                config['categories'][category] = []
+
+            # Add only unique new keywords
+            for keyword in new_keywords:
+                if keyword not in [k.lower() for k in config['categories'][category]]:
+                    config['categories'][category].append(keyword)
+                    print(f"🎓 למדתי מילת מפתח חדשה: '{keyword}' -> {category}")
+
+            # Save updated config
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+
+            # Reload config in memory
+            self.config = config
+
     def categorize(self, business_name: str, amount: float = None,
-                   ask_user_callback=None) -> Tuple[str, float]:
+                   ask_user_callback=None) -> Tuple[str, float, str, str]:
         """
         Categorize expense using smart keyword matching (no Ollama/AI needed!)
 
         Returns:
-            Tuple[str, float]: (category, confidence)
+            Tuple[str, float, str, str]: (category, confidence, method, reason)
         """
         # First check if we have a user correction for this exact business
         if business_name.lower() in self.user_corrections:
-            return self.user_corrections[business_name.lower()], 1.0
+            category = self.user_corrections[business_name.lower()]
+            return category, 1.0, "user_correction", f"סווג ידנית ע\"י המשתמש כ-'{category}'"
 
         # Use enhanced keyword matching - works offline!
-        keyword_category = self._keyword_match(business_name)
+        keyword_category, matched_keyword = self._keyword_match_with_reason(business_name)
         if keyword_category:
-            return keyword_category, 0.95
+            return keyword_category, 0.95, "keyword", f"זוהה לפי מילת המפתח: '{matched_keyword}'"
 
         # Fallback to "אחר" if nothing matches
-        return "אחר", 0.5
+        return "אחר", 0.5, "default", "לא נמצאה התאמה - סווג כ'אחר'"
 
     def _keyword_match(self, business_name: str) -> Optional[str]:
         """Traditional keyword matching as fallback"""
@@ -71,6 +126,16 @@ class AICategorizer:
                 if keyword.lower() in business_lower:
                     return category
         return None
+
+    def _keyword_match_with_reason(self, business_name: str) -> Tuple[Optional[str], Optional[str]]:
+        """Keyword matching that returns the matched keyword"""
+        business_lower = business_name.lower()
+
+        for category, keywords in self.config['categories'].items():
+            for keyword in keywords:
+                if keyword.lower() in business_lower:
+                    return category, keyword
+        return None, None
 
     def _ai_categorize(self, business_name: str, amount: float = None) -> Tuple[str, float]:
         """Use Ollama AI to categorize expense"""

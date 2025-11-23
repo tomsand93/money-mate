@@ -57,13 +57,29 @@ class ExpenseProcessor:
                 df = df.rename(columns={'שם בית העסק': 'שם בית עסק'})
 
             # Verify required columns exist
-            required_columns = ['תאריך רכישה', 'שם בית עסק', 'סכום חיוב']
+            required_columns = ['תאריך רכישה', 'סכום חיוב']
             missing_cols = [col for col in required_columns if col not in df.columns]
 
             if missing_cols:
                 # Show available columns to help debug
                 available = list(df.columns)
                 raise ValueError(f"Missing required columns: {missing_cols}\nAvailable columns: {available}")
+
+            # Handle business name column - it might have different variations
+            business_name_col = None
+            possible_names = ['שם בית עסק', 'שם בית העסק', 'בית עסק', 'שם העסק']
+            for col_name in possible_names:
+                if col_name in df.columns:
+                    business_name_col = col_name
+                    break
+
+            if business_name_col is None:
+                available = list(df.columns)
+                raise ValueError(f"Could not find business name column. Tried: {possible_names}\nAvailable columns: {available}")
+
+            # Standardize the business name column
+            if business_name_col != 'שם בית עסק':
+                df = df.rename(columns={business_name_col: 'שם בית עסק'})
 
             # Clean and prepare data
             # Israeli date format is DD.MM.YY or DD/MM/YYYY (day first!)

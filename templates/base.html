@@ -16,7 +16,8 @@
                 <p class="tagline">מעקב הוצאות חכם עם בינה מלאכותית</p>
             </div>
             <ul class="nav-menu">
-                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">דשבורד</a></li>
+                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">בית</a></li>
+                <li><a href="{{ url_for('savings_dashboard') }}" class="{% if request.endpoint == 'savings_dashboard' %}active{% endif %}">מעקב חיסכון</a></li>
                 <li><a href="{{ url_for('upload_file') }}" class="{% if request.endpoint == 'upload_file' %}active{% endif %}">העלאת קובץ</a></li>
                 <li><a href="{{ url_for('reports') }}" class="{% if request.endpoint == 'reports' %}active{% endif %}">דוחות</a></li>
                 <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">הגדרות</a></li>

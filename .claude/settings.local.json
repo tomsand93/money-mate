@@ -6,7 +6,11 @@
       "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(pip install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(taskkill:*)",
+      "Bash(templates/index_dashboard_backup.html)",
+      "Bash(nul)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []

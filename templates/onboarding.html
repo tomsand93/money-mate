@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}ברוך הבא ל-MoneyMate{% endblock %}
+
+{% block content %}
+<div class="onboarding-container" style="max-width: 800px; margin: 2rem auto;">
+    <div class="welcome-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem; border-radius: 15px; text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">🎉 ברוך הבא ל-MoneyMate!</h1>
+        <p style="font-size: 1.2rem; opacity: 0.9;">בואו נגדיר את הפרטים הבסיסיים שלך כדי שנוכל לעזור לך לנהל את הכסף שלך בצורה חכמה</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('onboarding') }}" style="background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+
+        <!-- Step 1: Monthly Income -->
+        <div class="form-section" style="margin-bottom: 3rem;">
+            <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+                💵 שלב 1: הכנסה חודשית
+            </h2>
+            <div class="form-group">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem; color: var(--dark);">
+                    מה ההכנסה החודשית הקבועה שלך? (₪)
+                </label>
+                <input type="number"
+                       name="monthly_income"
+                       step="0.01"
+                       required
+                       placeholder="לדוגמה: 11000"
+                       style="width: 100%; padding: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1.1rem;">
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    זה יכול להיות משכורת, הכנסה מעסק, או כל הכנסה קבועה אחרת
+                </small>
+            </div>
+        </div>
+
+        <!-- Step 2: Fixed Expenses -->
+        <div class="form-section" style="margin-bottom: 3rem;">
+            <h2 style="color: var(--primary-color); margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+                🏠 שלב 2: הוצאות קבועות חודשיות
+            </h2>
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                הוצאות שלא מופיעות בכרטיס האשראי, כמו שכר דירה, חשבון חשמל, ביטוחים וכו'
+            </p>
+
+            <div id="fixed-expenses-list">
+                <!-- Expense Entry 1 -->
+                <div class="expense-entry" style="background: #f7fafc; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; border: 2px solid #e2e8f0;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1.5fr 1.5fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">תיאור</label>
+                            <input type="text"
+                                   name="expense_description[]"
+                                   placeholder="לדוגמה: שכר דירה"
+                                   style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סכום (₪)</label>
+                            <input type="number"
+                                   name="expense_amount[]"
+                                   step="0.01"
+                                   placeholder="0"
+                                   style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">קטגוריה</label>
+                            <select name="expense_category[]"
+                                    style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                                <option value="חשבונות ומנויים">חשבונות ומנויים</option>
+                                <option value="סופרמרקט">סופרמרקט</option>
+                                <option value="תחבורה">תחבורה</option>
+                                <option value="בריאות">בריאות</option>
+                                <option value="אוכל בחוץ">אוכל בחוץ</option>
+                                <option value="בילויים">בילויים</option>
+                                <option value="ביגוד והנעלה">ביגוד והנעלה</option>
+                                <option value="קניות אונליין">קניות אונליין</option>
+                                <option value="טיפוח אישי">טיפוח אישי</option>
+                                <option value="טיפוס וספורט">טיפוס וספורט</option>
+                                <option value="נסיעות וטיולים">נסיעות וטיולים</option>
+                                <option value="אחר">אחר</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סוג</label>
+                            <select name="expense_type[]"
+                                    style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                                <option value="needs">צרכים (50%)</option>
+                                <option value="wants">רצונות (30%)</option>
+                                <option value="invest">חיסכון/השקעות (20%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button"
+                    onclick="addExpenseRow()"
+                    style="background: #e2e8f0; color: #4a5568; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                ➕ הוסף הוצאה נוספת
+            </button>
+        </div>
+
+        <!-- Info Box -->
+        <div style="background: #e6fffa; padding: 1.5rem; border-radius: 10px; border-right: 4px solid var(--success-color); margin-bottom: 2rem;">
+            <h4 style="color: #0a7029; margin-bottom: 0.5rem;">💡 טיפ: כלל 50/30/20</h4>
+            <p style="color: #0a7029; margin: 0; line-height: 1.6;">
+                <strong>צרכים (50%):</strong> דברים שאתה חייב - שכר דירה, מזון, חשבונות, ביטוחים<br>
+                <strong>רצונות (30%):</strong> דברים שאתה רוצה - בילויים, קניות, מסעדות<br>
+                <strong>חיסכון/השקעות (20%):</strong> כסף שאתה חוסך או משקיע לעתיד
+            </p>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit"
+                style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.2rem; border: none; border-radius: 10px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;">
+            🚀 התחל להשתמש ב-MoneyMate
+        </button>
+    </form>
+</div>
+
+<script>
+function addExpenseRow() {
+    const container = document.getElementById('fixed-expenses-list');
+    const newRow = document.createElement('div');
+    newRow.className = 'expense-entry';
+    newRow.style.cssText = 'background: #f7fafc; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; border: 2px solid #e2e8f0;';
+
+    newRow.innerHTML = `
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1.5fr 1.5fr 0.3fr; gap: 1rem; align-items: end;">
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">תיאור</label>
+                <input type="text"
+                       name="expense_description[]"
+                       placeholder="לדוגמה: ביטוח רכב"
+                       style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+            </div>
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סכום (₪)</label>
+                <input type="number"
+                       name="expense_amount[]"
+                       step="0.01"
+                       placeholder="0"
+                       style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+            </div>
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">קטגוריה</label>
+                <select name="expense_category[]"
+                        style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    <option value="חשבונות ומנויים">חשבונות ומנויים</option>
+                    <option value="סופרמרקט">סופרמרקט</option>
+                    <option value="תחבורה">תחבורה</option>
+                    <option value="בריאות">בריאות</option>
+                    <option value="אוכל בחוץ">אוכל בחוץ</option>
+                    <option value="בילויים">בילויים</option>
+                    <option value="ביגוד והנעלה">ביגוד והנעלה</option>
+                    <option value="קניות אונליין">קניות אונליין</option>
+                    <option value="טיפוח אישי">טיפוח אישי</option>
+                    <option value="טיפוס וספורט">טיפוס וספורט</option>
+                    <option value="נסיעות וטיולים">נסיעות וטיולים</option>
+                    <option value="אחר">אחר</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סוג</label>
+                <select name="expense_type[]"
+                        style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    <option value="needs">צרכים (50%)</option>
+                    <option value="wants">רצונות (30%)</option>
+                    <option value="invest">חיסכון/השקעות (20%)</option>
+                </select>
+            </div>
+            <div>
+                <button type="button"
+                        onclick="this.parentElement.parentElement.parentElement.remove()"
+                        style="background: #fed7d7; color: #c53030; padding: 0.7rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                    🗑️
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(newRow);
+}
+
+// Style hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+        });
+        submitBtn.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+    }
+});
+</script>
+
+<style>
+button[type="button"]:hover {
+    background: #cbd5e0 !important;
+    transform: translateY(-1px);
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+</style>
+{% endblock %}

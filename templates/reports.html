@@ -25,10 +25,16 @@
                 </div>
             </div>
 
-            <a href="{{ url_for('view_report', year=report.year, month=report.month) }}"
-               style="display: block; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.8rem; border-radius: 8px; text-decoration: none; transition: transform 0.2s;">
-                צפה בדוח המלא
-            </a>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <a href="{{ url_for('view_report', year=report.year, month=report.month) }}"
+                   style="display: block; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.8rem; border-radius: 8px; text-decoration: none; transition: transform 0.2s;">
+                    📊 דוח
+                </a>
+                <a href="{{ url_for('view_expenses', year=report.year, month=report.month) }}"
+                   style="display: block; text-align: center; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 0.8rem; border-radius: 8px; text-decoration: none; transition: transform 0.2s;">
+                    📋 הוצאות
+                </a>
+            </div>
         </div>
         {% endfor %}
     </div>

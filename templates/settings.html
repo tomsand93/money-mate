@@ -1,10 +1,298 @@
 {% extends "base.html" %}
 
+{% block title %}הגדרות - MoneyMate{% endblock %}
+
 {% block content %}
 <div class="settings-page">
-    <h2 class="page-title">הגדרות</h2>
+    <h2 class="page-title">⚙️ הגדרות</h2>
 
-    <div class="settings-container" style="max-width: 800px;">
+    <!-- Monthly Income Section -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            💵 הכנסה חודשית קבועה
+        </h3>
+        <form method="POST" style="max-width: 400px;">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">הכנסה חודשית (₪)</label>
+                <input type="number"
+                       name="monthly_income"
+                       step="0.01"
+                       value="{{ monthly_income }}"
+                       required
+                       style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+            </div>
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                עדכן הכנסה
+            </button>
+        </form>
+    </div>
+
+    <!-- Fixed Expenses Section -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            🏠 הוצאות קבועות חודשיות
+        </h3>
+
+        <!-- List of Fixed Expenses -->
+        {% if fixed_expenses %}
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+            <thead>
+                <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.8rem; text-align: right;">תיאור</th>
+                    <th style="padding: 0.8rem; text-align: right;">סכום</th>
+                    <th style="padding: 0.8rem; text-align: right;">קטגוריה</th>
+                    <th style="padding: 0.8rem; text-align: right;">סוג</th>
+                    <th style="padding: 0.8rem; text-align: center;">פעולות</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in fixed_expenses %}
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 0.8rem;">{{ expense.description }}</td>
+                    <td style="padding: 0.8rem;">₪{{ expense.amount|currency }}</td>
+                    <td style="padding: 0.8rem;">{{ expense.category }}</td>
+                    <td style="padding: 0.8rem;">
+                        {% if expense.expense_type == 'needs' %}צרכים
+                        {% elif expense.expense_type == 'wants' %}רצונות
+                        {% else %}חיסכון/השקעות{% endif %}
+                    </td>
+                    <td style="padding: 0.8rem; text-align: center;">
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="delete_expense_id" value="{{ expense.id }}">
+                            <button type="submit" onclick="return confirm('האם אתה בטוח שברצונך למחוק הוצאה זו?')"
+                                    style="background: #fed7d7; color: #c53030; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer;">
+                                🗑️ מחק
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #666; margin-bottom: 2rem;">אין הוצאות קבועות. הוסף הוצאה חדשה למטה.</p>
+        {% endif %}
+
+        <!-- Add New Fixed Expense Form -->
+        <div style="background: #f7fafc; padding: 1.5rem; border-radius: 8px; border: 2px dashed #cbd5e0;">
+            <h4 style="color: #4a5568; margin-bottom: 1rem;">➕ הוסף הוצאה קבועה חדשה</h4>
+            <form method="POST">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1.5fr 1.5fr auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">תיאור</label>
+                        <input type="text"
+                               name="new_expense_description"
+                               placeholder="לדוגמה: שכר דירה"
+                               required
+                               style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סכום (₪)</label>
+                        <input type="number"
+                               name="new_expense_amount"
+                               step="0.01"
+                               placeholder="0"
+                               required
+                               style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">קטגוריה</label>
+                        <select name="new_expense_category"
+                                required
+                                style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                            <option value="חשבונות ומנויים">חשבונות ומנויים</option>
+                            <option value="סופרמרקט">סופרמרקט</option>
+                            <option value="תחבורה">תחבורה</option>
+                            <option value="בריאות">בריאות</option>
+                            <option value="אוכל בחוץ">אוכל בחוץ</option>
+                            <option value="בילויים">בילויים</option>
+                            <option value="ביגוד והנעלה">ביגוד והנעלה</option>
+                            <option value="קניות אונליין">קניות אונליין</option>
+                            <option value="טיפוח אישי">טיפוח אישי</option>
+                            <option value="טיפוס וספורט">טיפוס וספורט</option>
+                            <option value="נסיעות וטיולים">נסיעות וטיולים</option>
+                            <option value="אחר">אחר</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">סוג</label>
+                        <select name="new_expense_type"
+                                required
+                                style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                            <option value="needs">צרכים (50%)</option>
+                            <option value="wants">רצונות (30%)</option>
+                            <option value="invest">חיסכון/השקעות (20%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn-primary" style="background: var(--success-color); color: white; padding: 0.7rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap;">
+                            הוסף
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI Classification Settings -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            🤖 הגדרות סיווג אוטומטי
+        </h3>
+
+        <form method="POST">
+            <!-- Enable/Disable AI Toggle -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox"
+                           name="ai_enabled"
+                           {{ 'checked' if ai_enabled else '' }}
+                           style="width: 20px; height: 20px; cursor: pointer; margin-left: 0.5rem;">
+                    <div>
+                        <strong style="font-size: 1.1rem;">הפעל סיווג אוטומטי</strong>
+                        <div style="color: #666; font-size: 0.9rem; margin-top: 0.3rem;">
+                            כאשר מופעל, המערכת תסווג הוצאות חדשות אוטומטית לפי מילות מפתח
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Confidence Threshold Slider -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">
+                    רף ביטחון לסיווג אוטומטי
+                </label>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="range"
+                           name="confidence_threshold"
+                           min="0"
+                           max="1"
+                           step="0.05"
+                           value="{{ confidence_threshold }}"
+                           oninput="document.getElementById('thresholdValue').textContent = (this.value * 100).toFixed(0) + '%'"
+                           style="flex: 1; height: 8px; border-radius: 5px;">
+                    <span id="thresholdValue" style="min-width: 50px; font-weight: bold; color: var(--primary-color);">
+                        {{ (confidence_threshold * 100)|int }}%
+                    </span>
+                </div>
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    ביטחון מינימלי לסיווג אוטומטי. סיווגים מתחת לסף זה ידרשו אישור ידני.
+                </small>
+            </div>
+
+            <button type="submit"
+                    style="background: var(--primary-color); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+                שמור הגדרות AI
+            </button>
+        </form>
+    </div>
+
+    <!-- Category Keywords Editor -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            🔤 עריכת מילות מפתח לקטגוריות
+        </h3>
+
+        <p style="color: #666; margin-bottom: 1.5rem;">
+            ערוך את מילות המפתח שמשמשות לסיווג אוטומטי של הוצאות. הזן מילות מפתח מופרדות בפסיקים.
+        </p>
+
+        <form method="POST">
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">בחר קטגוריה:</label>
+                <select id="categorySelect"
+                        name="category_for_keywords"
+                        onchange="updateKeywordsField()"
+                        style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; margin-bottom: 1rem;">
+                    {% for category in config.categories.keys() %}
+                    <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">מילות מפתח (מופרדות בפסיקים):</label>
+                <textarea id="keywordsTextarea"
+                          name="keywords"
+                          rows="4"
+                          style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; font-family: inherit;"></textarea>
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    לדוגמה: טיפוס, בולדר, סלע מוח, קיר טיפוס
+                </small>
+            </div>
+
+            <button type="submit"
+                    style="background: var(--success-color); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                עדכן מילות מפתח
+            </button>
+        </form>
+    </div>
+
+    <!-- Category Management -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            📁 ניהול קטגוריות
+        </h3>
+
+        <p style="color: #666; margin-bottom: 1.5rem;">
+            צור קטגוריות מותאמות אישית עבור ההוצאות שלך. כל קטגוריה יכולה לכלול מילות מפתח משלה.
+        </p>
+
+        <!-- Existing Categories List -->
+        <div style="margin-bottom: 2rem;">
+            <h4 style="color: #4a5568; margin-bottom: 1rem;">קטגוריות קיימות:</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+                {% for category in config.categories.keys() %}
+                <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-right: 4px solid var(--primary-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: var(--dark);">{{ category }}</strong>
+                        <br>
+                        <small style="color: #666;">{{ config.categories[category]|length }} מילות מפתח</small>
+                    </div>
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="delete_category" value="{{ category }}">
+                        <button type="submit"
+                                onclick="return confirm('האם אתה בטוח שברצונך למחוק את הקטגוריה \'{{ category }}\'? פעולה זו תשנה את כל ההוצאות בקטגוריה זו ל-\'אחר\'.')"
+                                style="background: #fed7d7; color: #c53030; padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Add New Category Form -->
+        <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; border: 2px dashed #68d391;">
+            <h4 style="color: #2f855a; margin-bottom: 1rem;">➕ הוסף קטגוריה חדשה</h4>
+            <form method="POST">
+                <div style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">שם הקטגוריה</label>
+                        <input type="text"
+                               name="new_category_name"
+                               placeholder="לדוגמה: ספרים"
+                               required
+                               style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.3rem; color: #4a5568; font-size: 0.9rem;">מילות מפתח (מופרדות בפסיקים)</label>
+                        <input type="text"
+                               name="new_category_keywords"
+                               placeholder="לדוגמה: ספר, סטימצקי, צומת, אמזון ספרים"
+                               style="width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <button type="submit" style="background: var(--success-color); color: white; padding: 0.7rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap;">
+                            הוסף קטגוריה
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="settings-container" style="max-width: 1200px; margin-left: auto; margin-right: auto;">
         <!-- AI Status -->
         <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <h3 style="color: var(--primary-color); margin-bottom: 1rem;">🤖 סטטוס בינה מלאכותית</h3>
@@ -91,4 +379,21 @@
         </div>
     </div>
 </div>
+
+<script>
+// Category keywords data from server
+const categoryKeywords = {{ config.categories|tojson }};
+
+function updateKeywordsField() {
+    const selectedCategory = document.getElementById('categorySelect').value;
+    const keywords = categoryKeywords[selectedCategory] || [];
+    document.getElementById('keywordsTextarea').value = keywords.join(', ');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateKeywordsField();
+});
+</script>
+
 {% endblock %}

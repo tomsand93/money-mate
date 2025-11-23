@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}הוצאות - {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<div class="expenses-page">
+    <h2 class="page-title">📋 כל ההוצאות - {{ month_name }} {{ year }}</h2>
+
+    <div style="margin-bottom: 1rem;">
+        <a href="{{ url_for('reports') }}" style="color: var(--primary-color); text-decoration: none;">← חזרה לדוחות</a>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 1rem; color: #666;">
+            <strong>סה"כ הוצאות:</strong> ₪{{ expenses|sum(attribute='billing_amount')|currency }}
+            | <strong>מספר עסקאות:</strong> {{ expenses|length }}
+        </div>
+
+        <table class="expenses-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.8rem; text-align: right;">תאריך</th>
+                    <th style="padding: 0.8rem; text-align: right;">בית עסק</th>
+                    <th style="padding: 0.8rem; text-align: right;">סכום</th>
+                    <th style="padding: 0.8rem; text-align: right;">קטגוריה</th>
+                    <th style="padding: 0.8rem; text-align: center; width: 100px;">ביטחון</th>
+                    <th style="padding: 0.8rem; text-align: right;">סיבה</th>
+                    <th style="padding: 0.8rem; text-align: center;">פעולות</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr id="expense-{{ expense.id }}" style="border-bottom: 1px solid #e2e8f0;" class="{{ 'manually-edited' if expense.manually_edited else '' }}">
+                    <td style="padding: 0.8rem;">{{ expense.purchase_date.strftime('%d/%m/%Y') if expense.purchase_date else 'N/A' }}</td>
+                    <td style="padding: 0.8rem; font-weight: 600;">{{ expense.business_name }}</td>
+                    <td style="padding: 0.8rem; direction: ltr; text-align: right;">₪{{ expense.billing_amount|currency }}</td>
+                    <td style="padding: 0.8rem;">
+                        <span class="category-badge" data-expense-id="{{ expense.id }}">{{ expense.category }}</span>
+                    </td>
+                    <td style="padding: 0.8rem; text-align: center;">
+                        {% if expense.classification_confidence %}
+                        <span class="confidence-badge" style="background: {{ 'var(--success-color)' if expense.classification_confidence >= 0.9 else '#ffc107' if expense.classification_confidence >= 0.7 else '#f44336' }}; color: white; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem;">
+                            {{ (expense.classification_confidence * 100)|round|int }}%
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.8rem; font-size: 0.9rem; color: #666;">
+                        {% if expense.classification_reason %}
+                            {{ expense.classification_reason }}
+                        {% else %}
+                            לא זמין
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.8rem; text-align: center;">
+                        <button onclick="editCategory({{ expense.id }}, '{{ expense.business_name|replace("'", "\\'") }}')"
+                                style="background: var(--primary-color); color: white; padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                            ✏️ ערוך
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 10% auto; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 1rem; color: var(--primary-color);">עדכון קטגוריה</h3>
+        <div id="modalContent"></div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
+            <button onclick="closeModal()" style="background: #e2e8f0; color: #4a5568; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                ביטול
+            </button>
+            <button onclick="saveCategory()" style="background: var(--primary-color); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                שמור
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentExpenseId = null;
+const categories = {{ categories|tojson }};
+
+function editCategory(expenseId, businessName) {
+    currentExpenseId = expenseId;
+
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            <strong>בית עסק:</strong> ${businessName}
+        </div>
+        <div>
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">קטגוריה חדשה:</label>
+            <select id="newCategory" style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+            </select>
+        </div>
+    `;
+
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+    currentExpenseId = null;
+}
+
+async function saveCategory() {
+    if (!currentExpenseId) return;
+
+    const newCategory = document.getElementById('newCategory').value;
+
+    try {
+        const response = await fetch('/api/update_expense_category', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                expense_id: currentExpenseId,
+                category: newCategory
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update the UI
+            const badge = document.querySelector(`[data-expense-id="${currentExpenseId}"]`);
+            if (badge) {
+                badge.textContent = newCategory;
+            }
+
+            // Mark row as manually edited
+            const row = document.getElementById(`expense-${currentExpenseId}`);
+            if (row) {
+                row.classList.add('manually-edited');
+                row.style.background = '#e6fffa';
+            }
+
+            closeModal();
+
+            // Show success message
+            alert('✅ הקטגוריה עודכנה בהצלחה! העסק יסווג אוטומטית לקטגוריה זו בעתיד.');
+        } else {
+            alert('❌ שגיאה: ' + (data.error || 'לא ניתן לעדכן'));
+        }
+    } catch (error) {
+        alert('❌ שגיאה בשמירה: ' + error.message);
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+
+<style>
+.manually-edited {
+    background: #e6fffa !important;
+}
+
+.category-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+.expenses-table th {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.expenses-table tr:hover {
+    background: #f7fafc !important;
+}
+
+button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    transition: all 0.2s;
+}
+</style>
+{% endblock %}

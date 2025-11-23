@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}לוח בקרה - MoneyMate{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2 class="page-title">💰 לוח בקרה - מעקב חיסכון</h2>
+
+    {% if summary %}
+    <!-- Summary Cards -->
+    <div class="summary-cards" style="margin-bottom: 2rem;">
+        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="card-icon" style="font-size: 2.5rem;">💎</div>
+            <div class="card-content">
+                <div class="card-label">סך הכל נחסך</div>
+                <div class="card-value" style="font-size: 2rem;">₪{{ summary.total_savings|currency }}</div>
+                <div class="card-subtitle">ב-{{ summary.months_tracked }} חודשים</div>
+            </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+            <div class="card-icon" style="font-size: 2.5rem;">📊</div>
+            <div class="card-content">
+                <div class="card-label">חיסכון ממוצע</div>
+                <div class="card-value" style="font-size: 2rem;">₪{{ summary.avg_savings|currency }}</div>
+                <div class="card-subtitle">{{ summary.avg_percentage|round(1) }}% מההכנסה</div>
+            </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+            <div class="card-icon" style="font-size: 2.5rem;">🏆</div>
+            <div class="card-content">
+                <div class="card-label">החודש הטוב ביותר</div>
+                <div class="card-value" style="font-size: 1.5rem;">₪{{ summary.best_month.amount|currency }}</div>
+                <div class="card-subtitle">{{ summary.best_month.percentage|round(1) }}% חיסכון</div>
+            </div>
+        </div>
+
+        <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+            <div class="card-icon" style="font-size: 2.5rem;">📉</div>
+            <div class="card-content">
+                <div class="card-label">החודש החלש ביותר</div>
+                <div class="card-value" style="font-size: 1.5rem;">₪{{ summary.worst_month.amount|currency }}</div>
+                <div class="card-subtitle">{{ summary.worst_month.percentage|round(1) }}% חיסכון</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Savings Trend Chart -->
+    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📈 מגמת חיסכון לאורך זמן</h3>
+        <div style="height: 400px; position: relative;">
+            <canvas id="savingsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Savings Percentage Chart -->
+    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📊 אחוז חיסכון לפי חודש</h3>
+        <div style="height: 350px; position: relative;">
+            <canvas id="percentageChart"></canvas>
+        </div>
+        <div style="margin-top: 1rem; text-align: center; color: #666;">
+            <small>יעד מומלץ: 20% חיסכון מהכנסה חודשית</small>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown Table -->
+    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">📋 פירוט חודשי</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.8rem; text-align: right;">חודש</th>
+                    <th style="padding: 0.8rem; text-align: right;">הכנסה</th>
+                    <th style="padding: 0.8rem; text-align: right;">הוצאות</th>
+                    <th style="padding: 0.8rem; text-align: right;">חיסכון</th>
+                    <th style="padding: 0.8rem; text-align: center;">% חיסכון</th>
+                    <th style="padding: 0.8rem; text-align: center;">סטטוס</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(month_labels|length - 1, -1, -1) %}
+                {% set data = savings_data[i] %}
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 0.8rem; font-weight: 600;">{{ month_labels[i] }}</td>
+                    <td style="padding: 0.8rem;">₪{{ data.income|currency }}</td>
+                    <td style="padding: 0.8rem;">₪{{ data.expenses|currency }}</td>
+                    <td style="padding: 0.8rem; font-weight: 700; color: {{ '#43e97b' if data.amount > 0 else '#f5576c' }};">
+                        ₪{{ data.amount|currency }}
+                    </td>
+                    <td style="padding: 0.8rem; text-align: center; font-weight: 600;">
+                        {{ data.percentage|round(1) }}%
+                    </td>
+                    <td style="padding: 0.8rem; text-align: center;">
+                        {% if data.percentage >= 20 %}
+                        <span style="background: #43e97b; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
+                            ✓ מצוין
+                        </span>
+                        {% elif data.percentage >= 10 %}
+                        <span style="background: #ffc107; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
+                            ~ טוב
+                        </span>
+                        {% else %}
+                        <span style="background: #f5576c; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
+                            ⚠ נמוך
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% else %}
+    <div style="text-align: center; padding: 4rem; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
+        <h3 style="color: #666; margin-bottom: 1rem;">אין מספיק נתונים להצגה</h3>
+        <p style="color: #999; margin-bottom: 2rem;">העלה קובצי כרטיס אשראי והזן הכנסות חודשיות כדי לעקוב אחר החיסכון שלך</p>
+        <a href="{{ url_for('upload') }}" style="background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; display: inline-block;">
+            העלה קובץ
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% if summary %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const monthLabels = {{ month_labels|tojson }};
+    const savingsData = {{ savings_data|tojson }};
+
+    // Extract data for charts
+    const savingsAmounts = savingsData.map(d => d.amount);
+    const savingsPercentages = savingsData.map(d => d.percentage);
+
+    // Colors based on performance
+    const backgroundColors = savingsPercentages.map(p => {
+        if (p >= 20) return 'rgba(67, 233, 123, 0.8)';  // Green
+        if (p >= 10) return 'rgba(255, 193, 7, 0.8)';   // Yellow
+        return 'rgba(245, 87, 108, 0.8)';               // Red
+    });
+
+    const borderColors = savingsPercentages.map(p => {
+        if (p >= 20) return 'rgb(67, 233, 123)';
+        if (p >= 10) return 'rgb(255, 193, 7)';
+        return 'rgb(245, 87, 108)';
+    });
+
+    // Savings Amount Chart
+    const savingsCtx = document.getElementById('savingsChart').getContext('2d');
+    new Chart(savingsCtx, {
+        type: 'line',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'חיסכון חודשי (₪)',
+                data: savingsAmounts,
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: borderColors,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 14 },
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const data = savingsData[context.dataIndex];
+                            return [
+                                `חיסכון: ₪${data.amount.toLocaleString()}`,
+                                `${data.percentage.toFixed(1)}% מההכנסה`,
+                                `הכנסה: ₪${data.income.toLocaleString()}`,
+                                `הוצאות: ₪${data.expenses.toLocaleString()}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₪' + value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Savings Percentage Chart
+    const percentCtx = document.getElementById('percentageChart').getContext('2d');
+    new Chart(percentCtx, {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'אחוז חיסכון (%)',
+                data: savingsPercentages,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8
+            }, {
+                label: 'יעד 20%',
+                data: new Array(monthLabels.length).fill(20),
+                type: 'line',
+                borderColor: 'rgba(67, 233, 123, 0.6)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 14 },
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.datasetIndex === 0) {
+                                const data = savingsData[context.dataIndex];
+                                return `${data.percentage.toFixed(1)}% (₪${data.amount.toLocaleString()})`;
+                            }
+                            return 'יעד: 20%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: Math.max(...savingsPercentages, 25),
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
