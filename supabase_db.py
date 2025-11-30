@@ -179,31 +179,58 @@ class SupabaseDatabase:
         user_id = self.get_user_id()
         records = []
 
+        # Replace all NaN values with None to prevent JSON serialization errors
+        df = df.replace({pd.NA: None, pd.NaT: None})
+        # Also handle numpy NaN
+        import numpy as np
+        df = df.replace({np.nan: None})
+
         for _, row in df.iterrows():
             # Skip rows with missing required fields
             billing_amount = row.get('billing_amount')
-            if pd.isna(billing_amount) or billing_amount is None:
+            if billing_amount is None or (isinstance(billing_amount, float) and pd.isna(billing_amount)):
                 logger.warning(f"Skipping row with missing billing_amount: {row.get('business_name')}")
                 continue
+
+            # Helper function to safely convert to float or None
+            def safe_float(value):
+                if value is None:
+                    return None
+                try:
+                    if pd.notna(value):
+                        return float(value)
+                except (ValueError, TypeError):
+                    pass
+                return None
+
+            # Helper function to safely get string or None
+            def safe_str(value):
+                if value is None or (isinstance(value, float) and pd.isna(value)):
+                    return None
+                return str(value) if value else None
 
             record = {
                 'user_id': user_id,
                 'purchase_date': row.get('purchase_date').strftime('%Y-%m-%d') if pd.notna(row.get('purchase_date')) else None,
-                'business_name': row.get('business_name'),
-                'transaction_amount': float(row.get('transaction_amount')) if pd.notna(row.get('transaction_amount')) else None,
-                'transaction_currency': row.get('transaction_currency'),
+                'business_name': safe_str(row.get('business_name')),
+                'transaction_amount': safe_float(row.get('transaction_amount')),
+                'transaction_currency': safe_str(row.get('transaction_currency')),
                 'billing_amount': float(billing_amount),
-                'billing_currency': row.get('billing_currency'),
-                'voucher_number': row.get('voucher_number'),
-                'additional_details': row.get('additional_details'),
-                'category': row.get('category', 'אחר'),
-                'source_file': row.get('source_file'),
-                'classification_method': row.get('classification_method'),
-                'classification_confidence': float(row.get('classification_confidence')) if pd.notna(row.get('classification_confidence')) else None,
-                'classification_reason': row.get('classification_reason'),
+                'billing_currency': safe_str(row.get('billing_currency')),
+                'voucher_number': safe_str(row.get('voucher_number')),
+                'additional_details': safe_str(row.get('additional_details')),
+                'category': safe_str(row.get('category')) or 'אחר',
+                'source_file': safe_str(row.get('source_file')),
+                'classification_method': safe_str(row.get('classification_method')),
+                'classification_confidence': safe_float(row.get('classification_confidence')),
+                'classification_reason': safe_str(row.get('classification_reason')),
                 'manually_edited': bool(row.get('manually_edited', False))
             }
             records.append(record)
+
+        if not records:
+            logger.warning("No valid records to insert")
+            return 0
 
         # Use upsert to handle duplicates
         result = self.client.table('expenses')\
@@ -350,6 +377,30 @@ class SupabaseDatabase:
             .eq('id', expense_id)\
             .eq('user_id', user_id)\
             .execute()
+
+    # ============================================
+    # MONTHLY INCOME & ADDITIONAL EXPENSES
+    # ============================================
+
+    def get_monthly_income(self, year: int, month: int) -> Optional[float]:
+        """
+        Get monthly income for a specific month.
+        In Supabase, we use the user's default monthly_income from settings.
+        """
+        settings = self.get_user_settings()
+        if not settings:
+            return None
+
+        income = settings.get('monthly_income')
+        return float(income) if income is not None else None
+
+    def get_additional_expenses(self, year: int, month: int) -> List[Dict]:
+        """
+        Get additional expenses for a specific month.
+        Currently returns empty list as this feature is not yet implemented in Supabase.
+        TODO: Create additional_expenses table in Supabase if needed.
+        """
+        return []
 
     # ============================================
     # PROCESSED FILES
