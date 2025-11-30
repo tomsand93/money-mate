@@ -168,22 +168,57 @@ class ExpenseProcessor:
             # First, read without header to find the actual header row
             df_temp = pd.read_excel(file_path, header=None)
 
-            # Find the header row by looking for key billing/amount keywords
+            # Find the header row by looking for transaction table headers
             header_row = None
-            key_patterns = [
-                'סכום חיוב', 'billing amount', 'חיוב', 'amount',  # Billing amount
-                'תאריך רכישה', 'purchase date', 'תאריך', 'date'  # Date
+
+            # Key patterns that indicate a header row (not summary/metadata)
+            header_indicators = [
+                ('תאריך', 'date'),          # Date column
+                ('שם', 'name', 'merchant'), # Business name column
+                ('סכום', 'amount'),         # Amount column
+                ('עסק', 'business'),        # Business keyword
+            ]
+
+            # Patterns that indicate this is NOT a header row (summary/metadata)
+            exclusion_patterns = [
+                '₪',           # Currency symbol in header is usually metadata
+                'מסגרת',       # Credit limit
+                'נותר',        # Remaining credit
+                'יתרה',        # Balance
+                'סה"כ',        # Total (when alone, indicates summary row)
+                'סיכום',       # Summary
             ]
 
             for idx, row in df_temp.iterrows():
-                row_str = ' '.join([str(cell).lower() for cell in row if pd.notna(cell)])
-                # Check if row contains any of the key patterns
-                if any(pattern in row_str for pattern in key_patterns):
-                    # Additional check: row should have multiple non-empty cells
-                    non_empty = sum(1 for cell in row if pd.notna(cell) and str(cell).strip())
-                    if non_empty >= 3:  # At least 3 columns
-                        header_row = idx
-                        break
+                # Skip rows with very few non-empty cells
+                non_empty = [cell for cell in row if pd.notna(cell) and str(cell).strip()]
+                if len(non_empty) < 3:
+                    continue
+
+                row_str = ' '.join([str(cell).lower() for cell in non_empty])
+
+                # Skip rows that look like summary/metadata
+                is_excluded = False
+                for excl in exclusion_patterns:
+                    if excl.lower() in row_str:
+                        # But allow if it's part of actual column names like "סכום חיוב"
+                        if not any(indicator in row_str for indicators in header_indicators for indicator in indicators):
+                            is_excluded = True
+                            break
+
+                if is_excluded:
+                    continue
+
+                # Check if row contains header-like keywords
+                matches = 0
+                for indicators in header_indicators:
+                    if any(indicator in row_str for indicator in indicators):
+                        matches += 1
+
+                # Need at least 2 header indicators (e.g., "תאריך" AND "סכום")
+                if matches >= 2:
+                    header_row = idx
+                    break
 
             if header_row is None:
                 # Try default reading (header at row 0)

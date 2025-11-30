@@ -260,7 +260,13 @@ class SupabaseDatabase:
         if not result.data:
             return pd.DataFrame()
 
-        return pd.DataFrame(result.data)
+        df = pd.DataFrame(result.data)
+
+        # Convert purchase_date to datetime if it exists
+        if 'purchase_date' in df.columns and len(df) > 0:
+            df['purchase_date'] = pd.to_datetime(df['purchase_date'])
+
+        return df
 
     def get_available_months(self) -> List[Tuple[int, int]]:
         """Get list of (year, month) tuples with expense data"""
