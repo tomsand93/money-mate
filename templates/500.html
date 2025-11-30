@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}500 - שגיאת שרת | MoneyMate{% endblock %}
+
+{% block content %}
+<div class="error-page" style="text-align: center; padding: 60px 20px;">
+    <div class="error-icon" style="font-size: 120px; margin-bottom: 20px;">⚠️</div>
+    <h1 style="font-size: 48px; color: #e74c3c; margin-bottom: 20px;">500</h1>
+    <h2 style="font-size: 28px; margin-bottom: 20px;">שגיאת שרת</h2>
+    <p style="font-size: 18px; color: #666; margin-bottom: 30px;">
+        מצטערים, משהו השתבש בשרת. אנא נסה שוב מאוחר יותר.
+    </p>
+    <div style="margin-top: 40px;">
+        <a href="{{ url_for('index') }}" class="btn btn-primary" style="display: inline-block; padding: 12px 30px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; font-size: 16px;">
+            חזרה לדף הבית
+        </a>
+    </div>
+</div>
+{% endblock %}
