@@ -189,6 +189,9 @@ class ExpenseProcessor:
                 'סיכום',       # Summary
             ]
 
+            # Find ALL potential header rows, then pick the best one
+            potential_headers = []
+
             for idx, row in df_temp.iterrows():
                 # Skip rows with very few non-empty cells
                 non_empty = [cell for cell in row if pd.notna(cell) and str(cell).strip()]
@@ -217,8 +220,14 @@ class ExpenseProcessor:
 
                 # Need at least 2 header indicators (e.g., "תאריך" AND "סכום")
                 if matches >= 2:
-                    header_row = idx
-                    break
+                    # Count how many cells are non-empty (more = better header)
+                    score = len(non_empty) + matches * 10  # Prioritize more matches
+                    potential_headers.append((idx, score, non_empty))
+
+            # Pick the best header (highest score = most complete)
+            if potential_headers:
+                potential_headers.sort(key=lambda x: x[1], reverse=True)
+                header_row = potential_headers[0][0]
 
             if header_row is None:
                 # Try default reading (header at row 0)
