@@ -324,15 +324,28 @@ class ExpenseProcessor:
         """
         df = self.read_excel_file(file_path)
 
-        # Extract year and month from filename (e.g., "9309_07_2025.xlsx" -> month=07, year=2025)
+        # Extract year and month from filename
+        # NOTE: Credit card statement files are named by STATEMENT month, not transaction month
+        # e.g., "9309_08_2025.xlsx" contains July 2025 transactions (month 7)
+        # So we need to subtract 1 from the file month to get the actual transaction month
         filename = os.path.basename(file_path)
         # Pattern: look for MM_YYYY or similar patterns
         match = re.search(r'_(\d{2})_(\d{4})', filename)
         if match:
-            file_month = int(match.group(1))
-            file_year = int(match.group(2))
-            # Override the date with the first day of the month from filename
-            df['purchase_date'] = pd.Timestamp(year=file_year, month=file_month, day=1)
+            statement_month = int(match.group(1))
+            statement_year = int(match.group(2))
+
+            # Calculate actual transaction month (statement month - 1)
+            if statement_month == 1:
+                # January statement = December transactions of previous year
+                transaction_month = 12
+                transaction_year = statement_year - 1
+            else:
+                transaction_month = statement_month - 1
+                transaction_year = statement_year
+
+            # Override the date with the first day of the transaction month
+            df['purchase_date'] = pd.Timestamp(year=transaction_year, month=transaction_month, day=1)
 
         # Add category column
         df['category'] = df['business_name'].apply(self.categorize_expense)
