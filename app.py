@@ -11,18 +11,31 @@ if sys.platform == 'win32':
 
 import os
 import json
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+import logging
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 
+# Import authentication and Supabase
+from auth import auth, login_required, guest_only
+from supabase_db import SupabaseDatabase
 from database import ExpenseDatabase
+
 from expense_processor import ExpenseProcessor
 from report_generator import ReportGenerator
 from ai_categorizer import AICategorizer
 from financial_analyzer import FinancialAnalyzer
 
+# Load environment variables
+load_dotenv()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this'  # Change in production
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
 app.config['UPLOAD_FOLDER'] = 'input_files'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -30,12 +43,24 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 with open('config_ai.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-# Initialize components
-db = ExpenseDatabase(config['database_file'])
+# Initialize components (database will be set per user)
 processor = ExpenseProcessor()
-report_gen = ReportGenerator(db)
 ai_categorizer = AICategorizer()
 financial_analyzer = FinancialAnalyzer()
+
+
+def get_db():
+    """Get database instance for current user"""
+    if auth.is_authenticated():
+        # Use Supabase for authenticated users
+        db = SupabaseDatabase()
+        user_info = auth.get_user_info()
+        if user_info:
+            db.set_user(user_info['id'])
+        return db
+    else:
+        # Fallback to local SQLite for development (should not happen in production)
+        return ExpenseDatabase(config['database_file'])
 
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
@@ -44,9 +69,113 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ============================================
+# AUTHENTICATION ROUTES
+# ============================================
+
+@app.route('/login', methods=['GET', 'POST'])
+@guest_only
+def login():
+    """User login page"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if not email or not password:
+            flash('נא למלא את כל השדות', 'error')
+            return render_template('login.html')
+
+        # Attempt login
+        result = auth.login(email, password)
+
+        if result['success']:
+            flash('התחברת בהצלחה!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('index'))
+        else:
+            flash(result.get('error', 'שגיאה בהתחברות'), 'error')
+            return render_template('login.html')
+
+    return render_template('login.html')
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+@guest_only
+def signup():
+    """User registration page"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        password_confirm = request.form.get('password_confirm')
+
+        if not email or not password or not password_confirm:
+            flash('נא למלא את כל השדות', 'error')
+            return render_template('signup.html')
+
+        if password != password_confirm:
+            flash('הסיסמאות אינן תואמות', 'error')
+            return render_template('signup.html')
+
+        if len(password) < 6:
+            flash('הסיסמה חייבת להכיל לפחות 6 תווים', 'error')
+            return render_template('signup.html')
+
+        # Attempt signup
+        result = auth.signup(email, password)
+
+        if result['success']:
+            flash('נרשמת בהצלחה! נא להתחבר', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash(result.get('error', 'שגיאה ברישום'), 'error')
+            return render_template('signup.html')
+
+    return render_template('signup.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """User logout"""
+    auth.logout()
+    flash('התנתקת בהצלחה', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+@guest_only
+def reset_password():
+    """Password reset page"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+
+        if not email:
+            flash('נא להזין כתובת אימייל', 'error')
+            return render_template('reset_password.html')
+
+        result = auth.reset_password(email)
+
+        if result['success']:
+            flash('נשלח אימייל לאיפוס סיסמה', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash(result.get('error', 'שגיאה בשליחת האימייל'), 'error')
+            return render_template('reset_password.html')
+
+    return render_template('reset_password.html')
+
+
+# ============================================
+# MAIN APPLICATION ROUTES
+# ============================================
+
 @app.route('/')
+@login_required
 def index():
     """Home page - Dashboard overview of ALL months"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
+
     # Check if onboarding is complete
     if not db.is_onboarding_complete():
         return redirect(url_for('onboarding'))
@@ -152,8 +281,11 @@ def index():
 
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload_file():
     """Process all credit card files from a folder"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     if request.method == 'POST':
         folder_path = request.form.get('folder_path', '').strip()
 
@@ -236,6 +368,7 @@ def upload_file():
 
 
 @app.route('/savings-dashboard')
+@login_required
 def savings_dashboard():
     """Savings tracking dashboard with historical graph"""
     months = db.get_available_months()
@@ -304,8 +437,11 @@ def savings_dashboard():
 
 
 @app.route('/reports')
+@login_required
 def reports():
     """View all monthly reports"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     months = db.get_available_months()
 
     reports_data = []
@@ -318,6 +454,7 @@ def reports():
 
 
 @app.route('/report/<int:year>/<int:month>')
+@login_required
 def view_report(year, month):
     """View specific month report"""
     report = report_gen.generate_monthly_report(year, month)
@@ -371,8 +508,11 @@ def view_report(year, month):
 
 
 @app.route('/onboarding', methods=['GET', 'POST'])
+@login_required
 def onboarding():
     """Onboarding page for new users"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     # If already completed, redirect to home
     if db.is_onboarding_complete() and request.method == 'GET':
         return redirect(url_for('index'))
@@ -413,6 +553,7 @@ def onboarding():
 
 
 @app.route('/settings', methods=['GET', 'POST'])
+@login_required
 def settings():
     """Application settings"""
     global ai_categorizer
@@ -557,8 +698,11 @@ def settings():
 
 
 @app.route('/api/categorize', methods=['POST'])
+@login_required
 def api_categorize():
     """API endpoint for manual categorization"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     data = request.json
     business_name = data.get('business_name')
     category = data.get('category')
@@ -572,6 +716,7 @@ def api_categorize():
 
 
 @app.route('/api/update_expense_category', methods=['POST'])
+@login_required
 def update_expense_category():
     """Update an expense's category"""
     data = request.json
@@ -598,8 +743,11 @@ def update_expense_category():
 
 
 @app.route('/expenses/<int:year>/<int:month>')
+@login_required
 def view_expenses(year, month):
     """View all expenses for a specific month"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     expenses_df = db.get_monthly_expenses(year, month)
 
     if len(expenses_df) == 0:
