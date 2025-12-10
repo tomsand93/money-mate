@@ -26,6 +26,7 @@ from expense_processor import ExpenseProcessor
 from report_generator import ReportGenerator
 from ai_categorizer import AICategorizer
 from financial_analyzer import FinancialAnalyzer
+from i18n import i18n
 
 # Load environment variables
 load_dotenv()
@@ -49,12 +50,23 @@ ai_categorizer = AICategorizer()
 financial_analyzer = FinancialAnalyzer()
 
 
+# Register i18n context processor to make 't' function available in all templates
+@app.context_processor
+def inject_i18n():
+    """Make i18n functions available in all templates"""
+    return {
+        't': i18n.t,
+        'current_language': i18n.get_language(),
+        'get_direction': i18n.get_direction
+    }
+
+
 def get_db():
     """Get database instance for current user"""
     if auth.is_authenticated():
         # Use Supabase for authenticated users
         db = SupabaseDatabase()
-        user_info = auth.get_user_info()
+        user_info = auth.get_current_user()
         if user_info:
             db.set_user(user_info['id'])
         return db
@@ -86,14 +98,14 @@ def login():
             return render_template('login.html')
 
         # Attempt login
-        result = auth.login(email, password)
+        success, message, session_data = auth.sign_in(email, password)
 
-        if result['success']:
+        if success:
             flash('התחברת בהצלחה!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page if next_page else url_for('index'))
         else:
-            flash(result.get('error', 'שגיאה בהתחברות'), 'error')
+            flash(message, 'error')
             return render_template('login.html')
 
     return render_template('login.html')
@@ -121,13 +133,13 @@ def signup():
             return render_template('signup.html')
 
         # Attempt signup
-        result = auth.signup(email, password)
+        success, message, user_data = auth.sign_up(email, password)
 
-        if result['success']:
+        if success:
             flash('נרשמת בהצלחה! נא להתחבר', 'success')
             return redirect(url_for('login'))
         else:
-            flash(result.get('error', 'שגיאה ברישום'), 'error')
+            flash(message, 'error')
             return render_template('signup.html')
 
     return render_template('signup.html')
@@ -137,7 +149,7 @@ def signup():
 @login_required
 def logout():
     """User logout"""
-    auth.logout()
+    success, message = auth.sign_out()
     flash('התנתקת בהצלחה', 'success')
     return redirect(url_for('login'))
 
@@ -153,13 +165,13 @@ def reset_password():
             flash('נא להזין כתובת אימייל', 'error')
             return render_template('reset_password.html')
 
-        result = auth.reset_password(email)
+        success, message = auth.reset_password_request(email)
 
-        if result['success']:
+        if success:
             flash('נשלח אימייל לאיפוס סיסמה', 'success')
             return redirect(url_for('login'))
         else:
-            flash(result.get('error', 'שגיאה בשליחת האימייל'), 'error')
+            flash(message, 'error')
             return render_template('reset_password.html')
 
     return render_template('reset_password.html')
@@ -371,6 +383,8 @@ def upload_file():
 @login_required
 def savings_dashboard():
     """Savings tracking dashboard with historical graph"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     months = db.get_available_months()
 
     # Get fixed expenses total and monthly income
@@ -457,6 +471,8 @@ def reports():
 @login_required
 def view_report(year, month):
     """View specific month report"""
+    db = get_db()
+    report_gen = ReportGenerator(db)
     report = report_gen.generate_monthly_report(year, month)
 
     if not report['has_data']:
@@ -557,6 +573,7 @@ def onboarding():
 def settings():
     """Application settings"""
     global ai_categorizer
+    db = get_db()
 
     if request.method == 'POST':
         # Handle monthly income update
@@ -719,6 +736,7 @@ def api_categorize():
 @login_required
 def update_expense_category():
     """Update an expense's category"""
+    db = get_db()
     data = request.json
     expense_id = data.get('expense_id')
     new_category = data.get('category')
