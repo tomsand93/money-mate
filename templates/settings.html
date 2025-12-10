@@ -365,6 +365,41 @@
             </div>
         </div>
 
+        <!-- Danger Zone -->
+        <div class="settings-section" style="background: #fff5f5; padding: 2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(220,38,38,0.2); border: 2px solid #fecaca;">
+            <h3 style="color: #dc2626; margin-bottom: 1rem;">⚠️ אזור סכנה - מחיקת נתונים</h3>
+
+            <p style="color: #7f1d1d; margin-bottom: 1rem;">
+                פעולה זו תמחק <strong>את כל הנתונים שלך</strong> כולל הוצאות, קבצים שעובדו, והגדרות.
+                <br>זה שימושי אם אתה רוצה להעלות קבצים מחדש עם התיקונים החדשים (כמו תיקון חודשים).
+            </p>
+
+            <form method="POST" onsubmit="return confirmDelete();" style="margin-top: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #7f1d1d; font-weight: bold;">
+                        הקלד DELETE באנגלית כדי לאשר מחיקה:
+                    </label>
+                    <input type="text"
+                           name="clear_data_confirmation"
+                           id="clearDataConfirmation"
+                           placeholder="DELETE"
+                           required
+                           style="width: 200px; padding: 0.8rem; border: 2px solid #fecaca; border-radius: 6px; direction: ltr; text-align: left;">
+                </div>
+
+                <button type="submit"
+                        name="clear_all_data"
+                        value="1"
+                        style="background: #dc2626; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.3s;">
+                    🗑️ מחק את כל הנתונים
+                </button>
+
+                <p style="margin-top: 1rem; color: #7f1d1d; font-size: 0.9rem;">
+                    <strong>הערה:</strong> לאחר המחיקה תוכל להעלות קבצים מחדש דרך עמוד ההעלאה.
+                </p>
+            </form>
+        </div>
+
         <!-- Instructions -->
         <div class="settings-section" style="background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); padding: 2rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <h3 style="color: var(--primary-color); margin-bottom: 1rem;">📖 איך להתקין Ollama</h3>
@@ -388,6 +423,16 @@ function updateKeywordsField() {
     const selectedCategory = document.getElementById('categorySelect').value;
     const keywords = categoryKeywords[selectedCategory] || [];
     document.getElementById('keywordsTextarea').value = keywords.join(', ');
+}
+
+// Confirm delete all data
+function confirmDelete() {
+    const confirmation = document.getElementById('clearDataConfirmation').value;
+    if (confirmation !== 'DELETE') {
+        alert('נא להקליד DELETE באנגלית בדיוק כדי לאשר');
+        return false;
+    }
+    return confirm('האם אתה בטוח לחלוטין? פעולה זו תמחק את כל הנתונים שלך ולא ניתן לשחזר אותם!');
 }
 
 // Initialize on page load

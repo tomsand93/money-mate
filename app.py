@@ -38,7 +38,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this-in-production')
 app.config['UPLOAD_FOLDER'] = 'input_files'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 # Load config
 with open('config_ai.json', 'r', encoding='utf-8') as f:
@@ -292,84 +293,106 @@ def index():
                          months=months)
 
 
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload_file():
-    """Process all credit card files from a folder"""
+    """Process uploaded credit card files"""
     db = get_db()
-    report_gen = ReportGenerator(db)
+
     if request.method == 'POST':
-        folder_path = request.form.get('folder_path', '').strip()
-
-        if not folder_path:
-            flash('נא להזין נתיב לתיקייה', 'error')
+        # Check if files were uploaded
+        if 'files' not in request.files:
+            flash('לא נבחרו קבצים', 'error')
             return redirect(request.url)
 
-        if not os.path.exists(folder_path):
-            flash(f'התיקייה לא נמצאה: {folder_path}', 'error')
+        files = request.files.getlist('files')
+
+        if not files or files[0].filename == '':
+            flash('לא נבחרו קבצים', 'error')
             return redirect(request.url)
 
-        if not os.path.isdir(folder_path):
-            flash('הנתיב שהוזן אינו תיקייה', 'error')
-            return redirect(request.url)
+        # Create temporary directory for uploads
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
 
-        # Process all Excel files in the folder
-        use_ai = ai_categorizer.check_ollama_available()
-        processed_count = 0
-        skipped_count = 0
-        error_count = 0
-        total_transactions = 0
+        try:
+            # Check if AI is available
+            use_ai = ai_categorizer.check_ollama_available()
+            processed_count = 0
+            skipped_count = 0
+            error_count = 0
+            total_transactions = 0
 
-        for filename in os.listdir(folder_path):
-            if not (filename.endswith(('.xlsx', '.xls')) and not filename.startswith('~')):
-                continue
+            for file in files:
+                if file and allowed_file(file.filename):
+                    filename = file.filename
 
-            # Check if already processed
-            if db.is_file_processed(filename):
-                skipped_count += 1
-                continue
+                    # Check if already processed
+                    if db.is_file_processed(filename):
+                        skipped_count += 1
+                        continue
 
-            filepath = os.path.join(folder_path, filename)
+                    # Save file temporarily
+                    filepath = os.path.join(temp_dir, filename)
+                    file.save(filepath)
 
-            try:
-                df = processor.process_file(filepath)
+                    try:
+                        # Process the file
+                        df = processor.process_file(filepath)
 
-                # Apply AI categorization if enabled
+                        # Apply AI categorization if enabled
+                        if use_ai:
+                            for idx in df.index:
+                                business_name = df.at[idx, 'business_name']
+                                amount = df.at[idx, 'billing_amount']
+                                category, confidence, method, reason = ai_categorizer.categorize(business_name, amount)
+                                df.at[idx, 'category'] = category
+                                df.at[idx, 'classification_method'] = method
+                                df.at[idx, 'classification_confidence'] = confidence
+                                df.at[idx, 'classification_reason'] = reason
+
+                        # Add to database
+                        new_records = db.add_expenses(df)
+                        db.mark_file_processed(filename, len(df))
+
+                        processed_count += 1
+                        total_transactions += new_records
+
+                    except Exception as e:
+                        error_count += 1
+                        flash(f'שגיאה בקובץ {filename}: {str(e)}', 'error')
+                    finally:
+                        # Clean up temp file
+                        if os.path.exists(filepath):
+                            os.remove(filepath)
+                else:
+                    flash(f'סוג קובץ לא נתמך: {file.filename}', 'warning')
+
+            # Show summary
+            if processed_count > 0:
+                flash(f'✅ עובדו בהצלחה {processed_count} קבצים עם {total_transactions} עסקאות', 'success')
                 if use_ai:
-                    for idx in df.index:
-                        business_name = df.at[idx, 'business_name']
-                        amount = df.at[idx, 'billing_amount']
-                        category, confidence, method, reason = ai_categorizer.categorize(business_name, amount)
-                        df.at[idx, 'category'] = category
-                        df.at[idx, 'classification_method'] = method
-                        df.at[idx, 'classification_confidence'] = confidence
-                        df.at[idx, 'classification_reason'] = reason
+                    flash('🤖 סיווג AI הופעל', 'info')
 
-                # Add to database
-                new_records = db.add_expenses(df)
-                db.mark_file_processed(filename, len(df))
+            if skipped_count > 0:
+                flash(f'⊘ דולגו {skipped_count} קבצים שכבר עובדו', 'warning')
 
-                processed_count += 1
-                total_transactions += new_records
+            if error_count > 0:
+                flash(f'❌ {error_count} קבצים נכשלו', 'error')
 
-            except Exception as e:
-                error_count += 1
-                flash(f'שגיאה בקובץ {filename}: {str(e)}', 'error')
+            if processed_count == 0 and skipped_count == 0 and error_count == 0:
+                flash('לא נמצאו קבצי Excel תקינים', 'warning')
 
-        # Show summary
-        if processed_count > 0:
-            flash(f'✅ עובדו בהצלחה {processed_count} קבצים עם {total_transactions} עסקאות', 'success')
-            if use_ai:
-                flash('🤖 סיווג AI הופעל', 'info')
-
-        if skipped_count > 0:
-            flash(f'⊘ דולגו {skipped_count} קבצים שכבר עובדו', 'warning')
-
-        if error_count > 0:
-            flash(f'❌ {error_count} קבצים נכשלו', 'error')
-
-        if processed_count == 0 and skipped_count == 0 and error_count == 0:
-            flash('לא נמצאו קבצי Excel בתיקייה', 'warning')
+        finally:
+            # Clean up temp directory
+            import shutil
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
 
         return redirect(url_for('index'))
 
@@ -696,6 +719,18 @@ def settings():
                     flash(f'קטגוריה "{category_to_delete}" נמחקה. {affected_rows} הוצאות עודכנו ל"אחר"', 'success')
             except Exception as e:
                 flash(f'שגיאה במחיקת קטגוריה: {str(e)}', 'error')
+
+        # Handle clearing all data
+        if 'clear_all_data' in request.form:
+            confirmation = request.form.get('clear_data_confirmation', '').strip()
+            if confirmation == 'DELETE':
+                try:
+                    db.delete_all_user_data()
+                    flash('✅ כל הנתונים נמחקו בהצלחה. תוכל להעלות קבצים מחדש כעת.', 'success')
+                except Exception as e:
+                    flash(f'שגיאה במחיקת נתונים: {str(e)}', 'error')
+            else:
+                flash('אישור שגוי - הקלד DELETE בדיוק כדי למחוק', 'error')
 
         return redirect(url_for('settings'))
 

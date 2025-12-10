@@ -17,22 +17,25 @@
 
     <div class="upload-container" style="max-width: 700px; margin: 2rem auto;">
         <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label style="display: block; font-weight: bold; margin-bottom: 0.5rem; color: var(--dark);">
-                        נתיב לתיקייה עם קבצי Excel
+                        בחר קבצי Excel
                     </label>
-                    <input type="text" name="folder_path"
-                           placeholder="C:\Users\YourName\Downloads\CreditCards"
+                    <input type="file" name="files"
+                           accept=".xlsx,.xls"
+                           multiple
                            required
-                           style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; direction: ltr; text-align: left;">
+                           id="fileInput"
+                           style="width: 100%; padding: 0.8rem; border: 2px dashed #e2e8f0; border-radius: 8px; font-size: 1rem; background: #f8fafc; cursor: pointer;">
                     <small style="color: #666; display: block; margin-top: 0.5rem;">
-                        למשל: C:\Users\Tom1\Downloads\CreditCards
+                        ניתן לבחור מספר קבצים בו-זמנית (החזק Ctrl/Cmd ובחר)
                     </small>
+                    <div id="fileList" style="margin-top: 1rem; color: #666; font-size: 0.9rem;"></div>
                 </div>
 
                 <button type="submit" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s;">
-                    📂 עבד את כל הקבצים בתיקייה
+                    📤 העלה ועבד קבצים
                 </button>
             </form>
         </div>
@@ -40,24 +43,23 @@
         <div style="margin-top: 2rem; background: #f7fafc; padding: 1.5rem; border-radius: 10px;">
             <h4 style="color: var(--primary-color); margin-bottom: 1rem;">📝 הוראות:</h4>
             <ol style="color: #666; line-height: 1.8;">
-                <li>צור תיקייה במחשב שלך (למשל: "CreditCards")</li>
                 <li>הורד את כל קבצי ה-Excel מאתר כרטיס האשראי</li>
-                <li>שם הקבצים צריך לכלול חודש ושנה (למשל: transactions_01_2024.xlsx)</li>
-                <li>שים את כל הקבצים בתיקייה אחת</li>
-                <li>העתק את הנתיב המלא לתיקייה והדבק למעלה</li>
-                <li>לחץ על "עבד את כל הקבצים בתיקייה"</li>
+                <li>שם הקבצים צריך לכלול חודש ושנה (למשל: transactions_10_2024.xlsx)</li>
+                <li>לחץ על "בחר קבצי Excel" והבחר את כל הקבצים</li>
+                <li>ניתן לבחור מספר קבצים בבת אחת (החזק Ctrl/Cmd)</li>
+                <li>לחץ על "העלה ועבד קבצים"</li>
                 <li>המערכת תעבד אוטומטית את כל הקבצים ותסווג עם AI!</li>
             </ol>
         </div>
 
         <div style="margin-top: 1.5rem; background: #fff3cd; padding: 1.5rem; border-radius: 10px; border-right: 4px solid #ffc107;">
-            <h4 style="color: #856404; margin-bottom: 0.5rem;">💡 איך למצוא את הנתיב לתיקייה?</h4>
-            <ol style="color: #856404; line-height: 1.6; margin: 0;">
-                <li>פתח את התיקייה ב-File Explorer</li>
-                <li>לחץ על שורת הכתובת למעלה (או לחץ Ctrl+L)</li>
-                <li>הנתיב המלא יסומן - העתק אותו (Ctrl+C)</li>
-                <li>הדבק כאן (Ctrl+V)</li>
-            </ol>
+            <h4 style="color: #856404; margin-bottom: 0.5rem;">💡 טיפים:</h4>
+            <ul style="color: #856404; line-height: 1.6; margin: 0;">
+                <li>ניתן להעלות קבצים מרובים בבת אחת</li>
+                <li>המערכת תדלג אוטומטית על קבצים שכבר עובדו</li>
+                <li>קבצים תקינים: .xlsx, .xls</li>
+                <li>גודל מקסימלי: 50MB לכל קובץ</li>
+            </ul>
         </div>
 
         <div style="margin-top: 2rem; background: #e6fffa; padding: 1.5rem; border-radius: 10px; border-right: 4px solid var(--success-color);">
@@ -75,13 +77,13 @@
         </div>
 
         <div style="margin-top: 2rem; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); padding: 1.5rem; border-radius: 10px;">
-            <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">⚡ יתרונות עיבוד תיקייה שלמה:</h4>
+            <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">⚡ יתרונות:</h4>
             <ul style="color: #666; line-height: 1.8;">
+                <li>✅ העלה קבצים ישירות מהדפדפן - עובד בכל מקום!</li>
                 <li>✅ עיבוד כל הקבצים בבת אחת - חוסך זמן!</li>
                 <li>✅ המערכת מדלגת אוטומטית על קבצים שכבר עובדו</li>
                 <li>✅ סיווג AI אוטומטי לכל ההוצאות</li>
                 <li>✅ דיווח מפורט על מה עובד ומה דולג</li>
-                <li>✅ ניתן להוסיף קבצים חדשים ולהריץ שוב - רק החדשים יעובדו</li>
             </ul>
         </div>
     </div>
@@ -93,10 +95,51 @@
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-input[type="text"]:focus {
+input[type="file"]:hover {
+    border-color: var(--primary-color);
+    background: white;
+}
+
+input[type="file"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
+
+#fileList {
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#fileList .file-item {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+#fileList .file-item:last-child {
+    border-bottom: none;
+}
 </style>
+
+<script>
+// Show selected files
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const fileList = document.getElementById('fileList');
+    const files = e.target.files;
+
+    if (files.length > 0) {
+        let html = '<strong>קבצים שנבחרו:</strong><br>';
+        for (let i = 0; i < files.length; i++) {
+            const size = (files[i].size / 1024).toFixed(2);
+            html += `<div class="file-item">📄 ${files[i].name} (${size} KB)</div>`;
+        }
+        fileList.innerHTML = html;
+    } else {
+        fileList.innerHTML = '';
+    }
+});
+</script>
 {% endblock %}
