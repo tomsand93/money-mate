@@ -155,6 +155,15 @@ def logout():
     return redirect(url_for('login'))
 
 
+@app.route('/switch-language/<lang>')
+def switch_language(lang):
+    """Switch language between Hebrew and English"""
+    if lang in ['he', 'en']:
+        i18n.set_language(lang)
+    # Redirect back to the previous page or home
+    return redirect(request.referrer or url_for('index'))
+
+
 @app.route('/reset-password', methods=['GET', 'POST'])
 @guest_only
 def reset_password():
@@ -217,8 +226,8 @@ def index():
         report = report_gen.generate_monthly_report(year, month)
         if report['has_data']:
             # Calculate totals for this month
-            income_value = report.get('income') or 0
-            month_income = income_value + monthly_income
+            # Note: report.get('income') already includes monthly_income from settings
+            month_income = report.get('income') or 0
             month_expenses = report['total_cc_expenses'] + fixed_expenses_total
             month_savings = month_income - month_expenses
 
@@ -430,8 +439,8 @@ def savings_dashboard():
 
         if report['has_data']:
             # Calculate income and expenses properly
-            income_value = report.get('income') or 0
-            total_income = income_value + monthly_income
+            # Note: report.get('income') already includes monthly_income from settings
+            total_income = report.get('income') or 0
             total_expenses = report.get('total_cc_expenses', 0) + fixed_expenses_total
             savings = total_income - total_expenses
             savings_percentage = (savings / total_income * 100) if total_income > 0 else 0
@@ -507,8 +516,8 @@ def view_report(year, month):
     fixed_expenses_total = db.get_total_fixed_expenses()
 
     # Fix: Handle None income
-    income_value = report.get('income') or 0
-    total_income = income_value + monthly_income
+    # Note: report.get('income') already includes monthly_income from settings
+    total_income = report.get('income') or 0
     total_expenses = report['total_cc_expenses'] + fixed_expenses_total
 
     # Add fixed expenses to category summary for this month
@@ -827,6 +836,261 @@ def view_expenses(year, month):
                          year=year,
                          month=month,
                          month_name=month_name)
+
+
+@app.route('/category_view')
+@login_required
+def category_view():
+    """View expenses by category across all months"""
+    db = get_db()
+
+    # Get selected category from query parameter
+    selected_category = request.args.get('category')
+
+    # Get all available months
+    months = db.get_available_months()
+
+    # Get all categories
+    categories = list(config['categories'].keys())
+
+    # If no category selected, default to first one
+    if not selected_category and categories:
+        selected_category = categories[0]
+
+    # Build monthly data for selected category
+    monthly_data = []
+
+    if selected_category:
+        for year, month in sorted(months):
+            # Get expenses for this month
+            result = db.client.table('expenses')\
+                .select('billing_amount')\
+                .eq('user_id', session['user_id'])\
+                .eq('category', selected_category)\
+                .gte('purchase_date', f'{year}-{month:02d}-01')\
+                .lt('purchase_date', f'{year if month < 12 else year + 1}-{month + 1 if month < 12 else 1:02d}-01')\
+                .execute()
+
+            expenses = result.data if result.data else []
+            total = sum(exp['billing_amount'] for exp in expenses)
+            count = len(expenses)
+
+            # Get month name
+            month_names_he = {
+                1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל',
+                5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט',
+                9: 'ספטמבר', 10: 'אוקטובר', 11: 'נובמבר', 12: 'דצמבר'
+            }
+            month_name = month_names_he.get(month, str(month))
+
+            monthly_data.append({
+                'year': year,
+                'month': month,
+                'month_name': month_name,
+                'month_label': f'{month_name} {year}',
+                'total': total,
+                'count': count
+            })
+
+    # Calculate summary statistics
+    if monthly_data:
+        total_all_months = sum(m['total'] for m in monthly_data)
+        avg_monthly = total_all_months / len(monthly_data)
+        max_month = max(monthly_data, key=lambda x: x['total'])
+        min_month = min(monthly_data, key=lambda x: x['total'])
+
+        summary = {
+            'total': total_all_months,
+            'average': avg_monthly,
+            'months_count': len(monthly_data),
+            'max_month': max_month,
+            'min_month': min_month
+        }
+    else:
+        summary = None
+
+    return render_template('category_view.html',
+                         categories=categories,
+                         selected_category=selected_category,
+                         monthly_data=monthly_data,
+                         summary=summary)
+
+
+@app.route('/review_transactions')
+@login_required
+def review_transactions():
+    """Review and manually edit transaction categories"""
+    db = get_db()
+
+    # Get filter parameters
+    confidence_filter = request.args.get('confidence')
+    category_filter = request.args.get('category')
+    edited_filter = request.args.get('edited')
+
+    # Build query
+    query = db.client.table('expenses')\
+        .select('*')\
+        .eq('user_id', session['user_id'])\
+        .order('purchase_date', desc=True)
+
+    if category_filter:
+        query = query.eq('category', category_filter)
+
+    if edited_filter == 'true':
+        query = query.eq('manually_edited', True)
+    elif edited_filter == 'false':
+        query = query.eq('manually_edited', False)
+
+    result = query.limit(200).execute()
+    transactions = result.data if result.data else []
+
+    # Calculate confidence levels for display
+    for txn in transactions:
+        score = txn.get('classification_confidence', 0)
+        if score >= 0.8:
+            txn['confidence_level'] = 'high'
+        elif score >= 0.5:
+            txn['confidence_level'] = 'medium'
+        elif score >= 0.3:
+            txn['confidence_level'] = 'low'
+        else:
+            txn['confidence_level'] = 'uncertain'
+
+        # Parse date
+        txn['purchase_date'] = datetime.strptime(txn['purchase_date'], '%Y-%m-%d')
+        # Store original for revert
+        txn['original_category'] = txn['category']
+        # Store confidence score for display
+        txn['confidence_score'] = score
+
+    # Filter by confidence level if specified (client-side filtering done server-side)
+    if confidence_filter:
+        transactions = [t for t in transactions if t['confidence_level'] == confidence_filter]
+
+    # Get all categories
+    categories = list(config['categories'].keys())
+
+    # Calculate stats
+    stats = {
+        'total': len(transactions),
+        'high_confidence': sum(1 for t in transactions if t['confidence_level'] == 'high'),
+        'medium_confidence': sum(1 for t in transactions if t['confidence_level'] == 'medium'),
+        'low_confidence': sum(1 for t in transactions if t['confidence_level'] == 'low'),
+        'uncertain': sum(1 for t in transactions if t['confidence_level'] == 'uncertain'),
+    }
+
+    return render_template('review_transactions.html',
+                           transactions=transactions,
+                           categories=categories,
+                           stats=stats)
+
+
+@app.route('/update_transaction_category', methods=['POST'])
+@login_required
+def update_transaction_category():
+    """Update a single transaction's category"""
+    db = get_db()
+    data = request.json
+
+    txn_id = data.get('id')
+    new_category = data.get('category')
+
+    if not txn_id or not new_category:
+        return jsonify({'error': 'Missing parameters'}), 400
+
+    # Update the transaction
+    result = db.client.table('expenses')\
+        .update({
+            'category': new_category,
+            'manually_edited': True,
+            'classification_method': 'manual'
+        })\
+        .eq('id', txn_id)\
+        .eq('user_id', session['user_id'])\
+        .execute()
+
+    return jsonify({'success': True})
+
+
+@app.route('/bulk_update_categories', methods=['POST'])
+@login_required
+def bulk_update_categories():
+    """Bulk update multiple transactions' categories"""
+    db = get_db()
+    data = request.json
+
+    txn_ids = data.get('ids', [])
+    new_category = data.get('category')
+
+    if not txn_ids or not new_category:
+        return jsonify({'error': 'Missing parameters'}), 400
+
+    # Update all selected transactions
+    for txn_id in txn_ids:
+        db.client.table('expenses')\
+            .update({
+                'category': new_category,
+                'manually_edited': True,
+                'classification_method': 'manual'
+            })\
+            .eq('id', txn_id)\
+            .eq('user_id', session['user_id'])\
+            .execute()
+
+    return jsonify({'success': True, 'updated': len(txn_ids)})
+
+
+@app.route('/recategorize_with_ai', methods=['POST'])
+@login_required
+def recategorize_with_ai():
+    """Recategorize selected transactions using AI"""
+    db = get_db()
+    data = request.json
+
+    txn_ids = data.get('ids', [])
+
+    if not txn_ids:
+        return jsonify({'error': 'No transactions selected'}), 400
+
+    # Get transactions
+    result = db.client.table('expenses')\
+        .select('id, business_name')\
+        .in_('id', txn_ids)\
+        .eq('user_id', session['user_id'])\
+        .execute()
+
+    transactions = result.data if result.data else []
+
+    # Try to use AI categorizer
+    try:
+        if not ai_categorizer.check_ollama_available():
+            return jsonify({'error': 'Ollama is not running'}), 503
+
+        # Recategorize each transaction
+        updated = 0
+        for txn in transactions:
+            business_name = txn['business_name']
+            # Get AI categorization
+            new_category, confidence, method, reason = ai_categorizer.categorize(business_name, 0)
+
+            if new_category:
+                db.client.table('expenses')\
+                    .update({
+                        'category': new_category,
+                        'classification_method': method,
+                        'classification_confidence': confidence,
+                        'classification_reason': reason,
+                        'manually_edited': False
+                    })\
+                    .eq('id', txn['id'])\
+                    .eq('user_id', session['user_id'])\
+                    .execute()
+                updated += 1
+
+        return jsonify({'success': True, 'updated': updated})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.template_filter('currency')

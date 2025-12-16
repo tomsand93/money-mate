@@ -209,6 +209,15 @@ class SupabaseDatabase:
                     return None
                 return str(value) if value else None
 
+            # Helper function to safely get int or None
+            def safe_int(value):
+                if value is None or (isinstance(value, float) and pd.isna(value)):
+                    return None
+                try:
+                    return int(value) if value else None
+                except (ValueError, TypeError):
+                    return None
+
             record = {
                 'user_id': user_id,
                 'purchase_date': row.get('purchase_date').strftime('%Y-%m-%d') if pd.notna(row.get('purchase_date')) else None,
@@ -224,7 +233,11 @@ class SupabaseDatabase:
                 'classification_method': safe_str(row.get('classification_method')),
                 'classification_confidence': safe_float(row.get('classification_confidence')),
                 'classification_reason': safe_str(row.get('classification_reason')),
-                'manually_edited': bool(row.get('manually_edited', False))
+                'manually_edited': bool(row.get('manually_edited', False)),
+                # Installment fields
+                'is_installment': bool(row.get('is_installment', False)),
+                'installment_number': safe_int(row.get('installment_number')),
+                'total_installments': safe_int(row.get('total_installments'))
             }
             records.append(record)
 

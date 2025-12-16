@@ -1,27 +1,125 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="he">
+<html dir="{{ get_direction() }}" lang="{{ current_language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MoneyMate - מעקב הוצאות חכם{% endblock %}</title>
+    <title>{% block title %}{{ t('app_name') }} - {{ t('tagline') }}{% endblock %}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
+    <style>
+        /* User menu dropdown styles */
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .user-menu-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .user-menu-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .user-menu-dropdown {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 1000;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+        }
+        .user-menu-dropdown.show {
+            display: block;
+        }
+        .user-menu-dropdown a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.2s;
+        }
+        .user-menu-dropdown a:hover {
+            background-color: #f5f5f5;
+        }
+        .user-menu-dropdown .divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 4px 0;
+        }
+        .language-switcher {
+            display: inline-flex;
+            gap: 8px;
+            margin-left: 16px;
+        }
+        .language-switcher a {
+            padding: 6px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        .language-switcher a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .language-switcher a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
-                <h1>💰 MoneyMate</h1>
-                <p class="tagline">מעקב הוצאות חכם עם בינה מלאכותית</p>
+                <h1>💰 {{ t('app_name') }}</h1>
+                <p class="tagline">{{ t('tagline') }}</p>
             </div>
             <ul class="nav-menu">
-                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">בית</a></li>
-                <li><a href="{{ url_for('savings_dashboard') }}" class="{% if request.endpoint == 'savings_dashboard' %}active{% endif %}">מעקב חיסכון</a></li>
-                <li><a href="{{ url_for('upload_file') }}" class="{% if request.endpoint == 'upload_file' %}active{% endif %}">העלאת קובץ</a></li>
-                <li><a href="{{ url_for('reports') }}" class="{% if request.endpoint == 'reports' %}active{% endif %}">דוחות</a></li>
-                <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">הגדרות</a></li>
+                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">{{ t('nav_dashboard') }}</a></li>
+                <li><a href="{{ url_for('savings_dashboard') }}" class="{% if request.endpoint == 'savings_dashboard' %}active{% endif %}">{{ t('nav_savings') }}</a></li>
+                <li><a href="{{ url_for('category_view') }}" class="{% if request.endpoint == 'category_view' %}active{% endif %}">{{ t('category_view_title') }}</a></li>
+                <li><a href="{{ url_for('upload_file') }}" class="{% if request.endpoint == 'upload_file' %}active{% endif %}">{{ t('nav_upload') }}</a></li>
+                <li><a href="{{ url_for('review_transactions') }}" class="{% if request.endpoint == 'review_transactions' %}active{% endif %}">{{ t('nav_review_transactions') }}</a></li>
+                <li><a href="{{ url_for('reports') }}" class="{% if request.endpoint == 'reports' %}active{% endif %}">{{ t('nav_reports') }}</a></li>
+                <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">{{ t('nav_settings') }}</a></li>
             </ul>
+            <div class="nav-right">
+                <!-- Language Switcher -->
+                <div class="language-switcher">
+                    <a href="{{ url_for('switch_language', lang='he') }}" class="{% if current_language == 'he' %}active{% endif %}">עב</a>
+                    <a href="{{ url_for('switch_language', lang='en') }}" class="{% if current_language == 'en' %}active{% endif %}">EN</a>
+                </div>
+
+                <!-- User Menu -->
+                {% if session.get('user_id') %}
+                <div class="user-menu">
+                    <button class="user-menu-button" onclick="toggleUserMenu()">
+                        👤 {{ session.get('user_email', t('nav_account')) }} ▼
+                    </button>
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <a href="{{ url_for('settings') }}">⚙️ {{ t('nav_settings') }}</a>
+                        <div class="divider"></div>
+                        <a href="{{ url_for('logout') }}">🚪 {{ t('nav_logout') }}</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
@@ -39,9 +137,30 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 MoneyMate | AI-Powered Expense Tracking</p>
+            <p>&copy; 2024 {{ t('app_name') }} | {{ t('footer_tagline') }}</p>
         </div>
     </footer>
+
+    <script>
+        // Toggle user menu dropdown
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userMenuDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('.user-menu-button')) {
+                const dropdowns = document.getElementsByClassName('user-menu-dropdown');
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const dropdown = dropdowns[i];
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                }
+            }
+        });
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

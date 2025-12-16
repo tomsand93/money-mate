@@ -229,11 +229,21 @@ class ExpenseProcessor:
                 potential_headers.sort(key=lambda x: x[1], reverse=True)
                 header_row = potential_headers[0][0]
 
+                # BUGFIX: The header detection sometimes picks the wrong row (like row 45 or 55)
+                # Prefer earlier rows if they have a good score (within first 15 rows)
+                # This fixes issues with credit card statements that have multiple sections
+                for idx, score, cells in potential_headers:
+                    if idx < 15 and score >= 20:  # Early row with decent score
+                        header_row = idx
+                        break
+
             if header_row is None:
                 # Try default reading (header at row 0)
+                print(f"  Warning: No header row detected, using row 0")
                 df = pd.read_excel(file_path)
             else:
                 # Read with the correct header row
+                print(f"  Info: Using header row {header_row}")
                 df = pd.read_excel(file_path, header=header_row)
 
             # Clean up column names (remove extra spaces, newlines, tabs)
@@ -258,6 +268,23 @@ class ExpenseProcessor:
             # Add business_name if not found (use empty string)
             if 'business_name' not in df.columns:
                 df['business_name'] = ''
+
+            # Remove duplicate header rows that sometimes appear in the middle of data
+            # These rows have header text like "תאריך רכישה" or "purchase date" in the date column
+            header_keywords = ['תאריך', '\\bdate\\b', 'שם בית', 'business name', 'merchant']
+            if 'purchase_date' in df.columns:
+                # Before date parsing, check for rows with header-like text
+                date_col_str = df['purchase_date'].astype(str).str.lower()
+                is_not_header = ~date_col_str.str.contains('|'.join(header_keywords), na=False, regex=True)
+                rows_before = len(df)
+                removed_rows = df[~is_not_header]
+                if len(removed_rows) > 0:
+                    with open('expense_filter_log.txt', 'w', encoding='utf-8') as log:
+                        log.write(f"Removing {len(removed_rows)} duplicate header rows:\n")
+                        for idx in removed_rows.index:
+                            log.write(f"  Row {idx}: {df.loc[idx, 'purchase_date']}\n")
+                    print(f"  Note: Removed {len(removed_rows)} duplicate header rows (see expense_filter_log.txt)")
+                df = df[is_not_header]
 
             # Clean and prepare data
             # Israeli date format is DD.MM.YY or DD/MM/YYYY (day first!)
@@ -293,7 +320,7 @@ class ExpenseProcessor:
             original_len = len(df)
             df = df.dropna(subset=['purchase_date', 'billing_amount'])
             if len(df) < original_len:
-                print(f"  Note: Removed {original_len - len(df)} rows with invalid date or amount")
+                print(f"  Note: Removed {original_len - len(df)} rows with invalid/missing date or amount")
 
             return df
 
@@ -301,48 +328,247 @@ class ExpenseProcessor:
             print(f"Error reading file {file_path}: {str(e)}")
             raise
 
-    def categorize_expense(self, business_name: str) -> str:
+    def categorize_expense(self, business_name: str) -> dict:
         """
-        Automatically categorize expense based on business name
+        Automatically categorize expense based on business name with confidence scoring.
+
+        Returns dict with:
+        - category: str
+        - confidence: str (high/medium/low/uncertain)
+        - confidence_score: float (0.0-1.0)
+        - matched_keywords: list
         """
-        if pd.isna(business_name):
-            return "אחר"
+        if pd.isna(business_name) or str(business_name).strip() == "":
+            return {
+                'category': "אחר",
+                'confidence': 'uncertain',
+                'confidence_score': 0.0,
+                'matched_keywords': []
+            }
 
-        business_name_lower = str(business_name).lower()
+        business_name_lower = str(business_name).lower().strip()
 
-        # Search for matching keywords in each category
+        # Track all matches with confidence scores
+        matches = []
+
         for category, keywords in self.categories.items():
+            matched_kw = []
             for keyword in keywords:
                 if keyword.lower() in business_name_lower:
-                    return category
+                    matched_kw.append(keyword)
 
-        return "אחר"
+            if matched_kw:
+                # Calculate confidence based on keyword coverage
+                max_keyword_len = max(len(kw) for kw in matched_kw)
+                business_len = len(business_name_lower)
+
+                # Base confidence from keyword coverage
+                coverage = max_keyword_len / business_len if business_len > 0 else 0
+
+                # Bonus for exact match
+                if any(kw.lower() == business_name_lower for kw in matched_kw):
+                    coverage = min(1.0, coverage * 1.5)
+
+                # Bonus for multiple keyword matches (balanced mode)
+                if len(matched_kw) > 1:
+                    coverage = min(1.0, coverage * 1.2)
+
+                matches.append((category, matched_kw, coverage))
+
+        # No matches found
+        if not matches:
+            return {
+                'category': "אחר",
+                'confidence': 'uncertain',
+                'confidence_score': 0.0,
+                'matched_keywords': []
+            }
+
+        # Sort by confidence, pick best
+        matches.sort(key=lambda x: x[2], reverse=True)
+        best_category, best_keywords, best_score = matches[0]
+
+        # Determine confidence level (balanced mode thresholds)
+        if best_score >= 0.8:
+            conf_level = 'high'
+        elif best_score >= 0.5:
+            conf_level = 'medium'
+        elif best_score >= 0.3:
+            conf_level = 'low'
+        else:
+            conf_level = 'uncertain'
+
+        # Check for ambiguity
+        if len(matches) > 1:
+            second_best_score = matches[1][2]
+            if abs(best_score - second_best_score) < 0.15:
+                # Ambiguous - downgrade confidence
+                if conf_level == 'high':
+                    conf_level = 'medium'
+                elif conf_level == 'medium':
+                    conf_level = 'low'
+
+        return {
+            'category': best_category,
+            'confidence': conf_level,
+            'confidence_score': round(best_score, 3),
+            'matched_keywords': best_keywords
+        }
+
+    def _detect_installment(self, text: str) -> tuple:
+        """
+        Detect installment pattern in text and extract payment number and total.
+
+        Patterns: "תשלום 8 מתוך 12", "8/12", "payment 8 of 12", "8 out of 12"
+
+        Returns:
+            (payment_number, total_payments) or (None, None) if not detected
+        """
+        if pd.isna(text):
+            return (None, None)
+
+        text_str = str(text).strip()
+
+        # Pattern 1: תשלום X מתוך Y
+        pattern1 = r'תשלום\s*(\d+)\s*מתוך\s*(\d+)'
+        match = re.search(pattern1, text_str)
+        if match:
+            return (int(match.group(1)), int(match.group(2)))
+
+        # Pattern 2: X/Y format
+        pattern2 = r'\b(\d+)/(\d+)\b'
+        match = re.search(pattern2, text_str)
+        if match:
+            payment = int(match.group(1))
+            total = int(match.group(2))
+            # Sanity check: installments are usually 2-60 payments
+            if 2 <= total <= 60 and 1 <= payment <= total:
+                return (payment, total)
+
+        # Pattern 3: "payment X of Y" or "X out of Y"
+        pattern3 = r'(?:payment|installment)\s*(\d+)\s*(?:of|out of)\s*(\d+)'
+        match = re.search(pattern3, text_str, re.IGNORECASE)
+        if match:
+            return (int(match.group(1)), int(match.group(2)))
+
+        return (None, None)
+
+    def _adjust_installment_date(self, original_date: pd.Timestamp, payment_num: int) -> pd.Timestamp:
+        """
+        Calculate the correct month for an installment payment.
+
+        Args:
+            original_date: The date shown in the transaction (original purchase date)
+            payment_num: Which payment this is (e.g., 8 for "payment 8 of 12")
+
+        Returns:
+            Adjusted date for this installment
+        """
+        # Payment 1 is in the original month
+        # Payment 2 is 1 month later
+        # Payment N is (N-1) months later
+        months_to_add = payment_num - 1
+
+        # Add months to the original date
+        new_month = original_date.month + months_to_add
+        new_year = original_date.year
+
+        # Handle year overflow
+        while new_month > 12:
+            new_month -= 12
+            new_year += 1
+
+        # Keep the same day, but adjust if day doesn't exist in new month
+        try:
+            adjusted_date = original_date.replace(year=new_year, month=new_month)
+        except ValueError:
+            # Day doesn't exist in new month (e.g., Jan 31 -> Feb 31)
+            # Use last day of new month instead
+            import calendar
+            last_day = calendar.monthrange(new_year, new_month)[1]
+            adjusted_date = original_date.replace(year=new_year, month=new_month, day=last_day)
+
+        return adjusted_date
 
     def process_file(self, file_path: str) -> pd.DataFrame:
         """
-        Process a single Excel file and add categories
+        Process a single Excel file and add categories with confidence scoring
         """
         df = self.read_excel_file(file_path)
 
-        # Extract year and month from filename
-        # Files are named by the actual transaction month (not statement month)
-        # e.g., "9309_10_2025.xlsx" contains October 2025 transactions (month 10)
-        filename = os.path.basename(file_path)
-        # Pattern: look for MM_YYYY or similar patterns
-        match = re.search(r'_(\d{2})_(\d{4})', filename)
-        if match:
-            transaction_month = int(match.group(1))
-            transaction_year = int(match.group(2))
+        # IMPORTANT: Use the actual purchase dates from the file!
+        # The dates in the Excel file are the correct transaction dates
+        # Do NOT override them with the filename month
 
-            # Override the date with the first day of the transaction month
-            df['purchase_date'] = pd.Timestamp(year=transaction_year, month=transaction_month, day=1)
+        # INSTALLMENT HANDLING: Detect and adjust dates for installment transactions
+        # Check both business_name and additional_details for installment patterns
+        installment_adjusted = 0
+        for idx in df.index:
+            # Check for installment pattern in business name or additional details
+            business_name = df.at[idx, 'business_name'] if 'business_name' in df.columns else ''
+            additional = df.at[idx, 'additional_details'] if 'additional_details' in df.columns else ''
 
-        # Add category column
-        df['category'] = df['business_name'].apply(self.categorize_expense)
+            # Try to detect installment in either field
+            payment_num, total_payments = self._detect_installment(business_name)
+            if payment_num is None:
+                payment_num, total_payments = self._detect_installment(additional)
+
+            # If installment detected, adjust the date
+            if payment_num is not None and total_payments is not None:
+                original_date = df.at[idx, 'purchase_date']
+                adjusted_date = self._adjust_installment_date(original_date, payment_num)
+                df.at[idx, 'purchase_date'] = adjusted_date
+
+                # Store installment info for reference
+                df.at[idx, 'is_installment'] = True
+                df.at[idx, 'installment_number'] = payment_num
+                df.at[idx, 'total_installments'] = total_payments
+
+                installment_adjusted += 1
+
+        # Add installment columns if not already present
+        if 'is_installment' not in df.columns:
+            df['is_installment'] = False
+        if 'installment_number' not in df.columns:
+            df['installment_number'] = None
+        if 'total_installments' not in df.columns:
+            df['total_installments'] = None
+
+        if installment_adjusted > 0:
+            print(f"  Info: Adjusted dates for {installment_adjusted} installment transactions")
+
+        # Add category column with confidence scoring
+        categorization_results = df['business_name'].apply(self.categorize_expense)
+
+        # Extract fields from results
+        df['category'] = categorization_results.apply(lambda x: x['category'])
+        df['classification_confidence'] = categorization_results.apply(lambda x: x['confidence_score'])
+        df['classification_reason'] = categorization_results.apply(lambda x: ', '.join(x['matched_keywords']))
+        df['classification_method'] = 'keyword'
+        df['manually_edited'] = False
+
+        # Also add human-readable confidence for display
+        df['confidence'] = categorization_results.apply(lambda x: x['confidence'])
 
         # Add source file information
         df['source_file'] = os.path.basename(file_path)
         df['processed_date'] = datetime.now()
+
+        # Generate classification summary
+        total = len(df)
+        high_conf = len(df[df['confidence'] == 'high'])
+        medium_conf = len(df[df['confidence'] == 'medium'])
+        low_conf = len(df[df['confidence'] == 'low'])
+        uncertain = len(df[df['confidence'] == 'uncertain'])
+
+        print(f"\n  Classification Summary:")
+        print(f"    ✓ High confidence: {high_conf}/{total} ({high_conf/total*100:.1f}%)")
+        print(f"    ~ Medium confidence: {medium_conf}/{total} ({medium_conf/total*100:.1f}%)")
+        print(f"    ⚠ Low confidence: {low_conf}/{total} ({low_conf/total*100:.1f}%)")
+        print(f"    ? Uncertain: {uncertain}/{total} ({uncertain/total*100:.1f}%)")
+
+        if low_conf + uncertain > 0:
+            print(f"    → {low_conf + uncertain} transactions may need manual review")
 
         return df
 

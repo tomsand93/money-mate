@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('nav_review_transactions') }} - {{ t('app_name') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .review-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .filters {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .filter-group {
+        display: inline-block;
+        margin-right: 20px;
+    }
+
+    .transactions-table {
+        width: 100%;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .transactions-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .transactions-table th {
+        background: var(--primary-color);
+        color: white;
+        padding: 12px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .transactions-table td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .transactions-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .confidence-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .confidence-high {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .confidence-medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .confidence-low {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .confidence-uncertain {
+        background: #e7e7e7;
+        color: #6c757d;
+    }
+
+    .category-select {
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+    }
+
+    .category-select:focus {
+        outline: 2px solid var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .category-select.edited {
+        background: #fff3cd;
+        border-color: #ffc107;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-small {
+        padding: 4px 12px;
+        font-size: 13px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-save {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-save:hover {
+        background: #218838;
+    }
+
+    .btn-revert {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-revert:hover {
+        background: #5a6268;
+    }
+
+    .bulk-actions {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .stats-bar {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 30px;
+    }
+
+    .stat-item {
+        flex: 1;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <h2 class="page-title">🔍 {{ t('review_transactions_title') }}</h2>
+    <p style="color: #666; margin-bottom: 20px;">{{ t('review_transactions_subtitle') }}</p>
+
+    <!-- Statistics Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value">{{ stats.total }}</div>
+            <div class="stat-label">{{ t('total_transactions') }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" style="color: #28a745;">{{ stats.high_confidence }}</div>
+            <div class="stat-label">{{ t('high_confidence') }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" style="color: #ffc107;">{{ stats.medium_confidence }}</div>
+            <div class="stat-label">{{ t('medium_confidence') }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" style="color: #dc3545;">{{ stats.low_confidence }}</div>
+            <div class="stat-label">{{ t('low_confidence') }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" style="color: #6c757d;">{{ stats.uncertain }}</div>
+            <div class="stat-label">{{ t('uncertain') }}</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <form method="GET" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+            <div class="filter-group">
+                <label>{{ t('filter_confidence') }}:</label>
+                <select name="confidence" class="category-select" onchange="this.form.submit()">
+                    <option value="">{{ t('all') }}</option>
+                    <option value="high" {% if request.args.get('confidence') == 'high' %}selected{% endif %}>{{ t('high_confidence') }}</option>
+                    <option value="medium" {% if request.args.get('confidence') == 'medium' %}selected{% endif %}>{{ t('medium_confidence') }}</option>
+                    <option value="low" {% if request.args.get('confidence') == 'low' %}selected{% endif %}>{{ t('low_confidence') }}</option>
+                    <option value="uncertain" {% if request.args.get('confidence') == 'uncertain' %}selected{% endif %}>{{ t('uncertain') }}</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>{{ t('filter_category') }}:</label>
+                <select name="category" class="category-select" onchange="this.form.submit()">
+                    <option value="">{{ t('all') }}</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>{{ t('filter_edited') }}:</label>
+                <select name="edited" class="category-select" onchange="this.form.submit()">
+                    <option value="">{{ t('all') }}</option>
+                    <option value="true" {% if request.args.get('edited') == 'true' %}selected{% endif %}>{{ t('manually_edited_only') }}</option>
+                    <option value="false" {% if request.args.get('edited') == 'false' %}selected{% endif %}>{{ t('auto_classified_only') }}</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-small btn-save">{{ t('apply_filters') }}</button>
+            <a href="{{ url_for('review_transactions') }}" class="btn-small btn-revert">{{ t('clear_filters') }}</a>
+        </form>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="bulk-actions">
+        <button onclick="selectAll()" class="btn-small btn-save">{{ t('select_all') }}</button>
+        <button onclick="deselectAll()" class="btn-small btn-revert">{{ t('deselect_all') }}</button>
+        <span style="margin: 0 10px;">|</span>
+        <select id="bulkCategory" class="category-select">
+            <option value="">{{ t('bulk_change_category') }}</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <button onclick="bulkUpdateCategory()" class="btn-small btn-save">{{ t('apply_to_selected') }}</button>
+        <span style="margin: 0 10px;">|</span>
+        <button onclick="recategorizeSelected()" class="btn-small" style="background: #17a2b8; color: white;">
+            🤖 {{ t('recategorize_with_ai') }}
+        </button>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="transactions-table">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)"></th>
+                    <th>{{ t('date') }}</th>
+                    <th>{{ t('business_name') }}</th>
+                    <th>{{ t('amount') }}</th>
+                    <th>{{ t('category') }}</th>
+                    <th>{{ t('confidence') }}</th>
+                    <th>{{ t('matched_keywords') }}</th>
+                    <th>{{ t('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr data-txn-id="{{ txn.id }}">
+                    <td><input type="checkbox" class="txn-checkbox" value="{{ txn.id }}"></td>
+                    <td>{{ txn.purchase_date.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ txn.business_name }}</td>
+                    <td style="text-align: left;">₪{{ txn.billing_amount|currency }}</td>
+                    <td>
+                        <select class="category-select" id="cat-{{ txn.id }}"
+                                onchange="markEdited({{ txn.id }})"
+                                {% if txn.manually_edited %}class="category-select edited"{% endif %}>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if cat == txn.category %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <span class="confidence-badge confidence-{{ txn.confidence_level }}">
+                            {{ txn.confidence_score|round(2) if txn.confidence_score else 'N/A' }}
+                        </span>
+                    </td>
+                    <td style="font-size: 12px; color: #666;">{{ txn.classification_reason or '-' }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-small btn-save" onclick="saveTransaction({{ txn.id }})">
+                                {{ t('save') }}
+                            </button>
+                            <button class="btn-small btn-revert" onclick="revertTransaction({{ txn.id }}, '{{ txn.original_category }}')">
+                                {{ t('revert') }}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not transactions %}
+    <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; margin-top: 20px;">
+        <p style="color: #666; font-size: 16px;">{{ t('no_transactions_found') }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.txn-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function selectAll() {
+    document.querySelectorAll('.txn-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAll() {
+    document.querySelectorAll('.txn-checkbox').forEach(cb => cb.checked = false);
+}
+
+function markEdited(txnId) {
+    const select = document.getElementById('cat-' + txnId);
+    select.classList.add('edited');
+}
+
+async function saveTransaction(txnId) {
+    const select = document.getElementById('cat-' + txnId);
+    const newCategory = select.value;
+
+    try {
+        const response = await fetch('/update_transaction_category', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: txnId, category: newCategory })
+        });
+
+        if (response.ok) {
+            select.classList.remove('edited');
+            alert('{{ t("category_updated") }}');
+        } else {
+            alert('{{ t("error_updating") }}');
+        }
+    } catch (error) {
+        alert('{{ t("error_updating") }}');
+    }
+}
+
+function revertTransaction(txnId, originalCategory) {
+    const select = document.getElementById('cat-' + txnId);
+    select.value = originalCategory;
+    select.classList.remove('edited');
+}
+
+async function bulkUpdateCategory() {
+    const bulkCategory = document.getElementById('bulkCategory').value;
+    if (!bulkCategory) {
+        alert('{{ t("please_select_category") }}');
+        return;
+    }
+
+    const selected = Array.from(document.querySelectorAll('.txn-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) {
+        alert('{{ t("please_select_transactions") }}');
+        return;
+    }
+
+    if (!confirm(`{{ t("bulk_update_confirm") }} ${selected.length} {{ t("transactions") }}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/bulk_update_categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selected, category: bulkCategory })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('{{ t("error_updating") }}');
+        }
+    } catch (error) {
+        alert('{{ t("error_updating") }}');
+    }
+}
+
+async function recategorizeSelected() {
+    const selected = Array.from(document.querySelectorAll('.txn-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) {
+        alert('{{ t("please_select_transactions") }}');
+        return;
+    }
+
+    if (!confirm(`{{ t("recategorize_ai_confirm") }} ${selected.length} {{ t("transactions") }}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/recategorize_with_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selected })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert(data.error || '{{ t("error_recategorizing") }}');
+        }
+    } catch (error) {
+        alert('{{ t("error_recategorizing") }}');
+    }
+}
+</script>
+{% endblock %}
