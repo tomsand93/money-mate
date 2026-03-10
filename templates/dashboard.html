@@ -1,44 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}דשבורד - MoneyMate{% endblock %}
+{% block title %}{{ t('nav_dashboard') }} - {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard">
-    <h2 class="page-title">דשבורד כללי - {{ summary.months_count }} חודשים</h2>
+    <h2 class="page-title">{{ t('dashboard_title') }} - {{ summary.months_count }} {{ t('dashboard_months_tracked') }}</h2>
 
     <!-- Summary Cards -->
     <div class="summary-cards">
         <div class="card income">
             <div class="card-icon">💵</div>
             <div class="card-content">
-                <div class="card-label">סך הכנסות</div>
+                <div class="card-label">{{ t('dashboard_total_income') }}</div>
                 <div class="card-value">₪{{ summary.total_income|currency }}</div>
-                <div class="card-subtitle">ממוצע: ₪{{ summary.avg_monthly_income|currency }}</div>
+                <div class="card-subtitle">{{ t('dashboard_avg_monthly') }}: ₪{{ summary.avg_monthly_income|currency }}</div>
             </div>
         </div>
 
         <div class="card expenses">
             <div class="card-icon">💳</div>
             <div class="card-content">
-                <div class="card-label">סך הוצאות</div>
+                <div class="card-label">{{ t('dashboard_total_expenses') }}</div>
                 <div class="card-value">₪{{ summary.total_expenses|currency }}</div>
-                <div class="card-subtitle">ממוצע: ₪{{ summary.avg_monthly_expenses|currency }}</div>
+                <div class="card-subtitle">{{ t('dashboard_avg_monthly') }}: ₪{{ summary.avg_monthly_expenses|currency }}</div>
             </div>
         </div>
 
         <div class="card {{ 'savings-good' if summary.savings_rate >= 20 else 'savings-low' }}">
             <div class="card-icon">💰</div>
             <div class="card-content">
-                <div class="card-label">סך חיסכון</div>
+                <div class="card-label">{{ t('dashboard_total_savings') }}</div>
                 <div class="card-value">₪{{ summary.total_savings|currency }}</div>
-                <div class="card-subtitle">{{ summary.savings_rate|round(1) }}% | ממוצע: ₪{{ summary.avg_monthly_savings|currency }}</div>
+                <div class="card-subtitle">{{ summary.savings_rate|round(1) }}% | {{ t('dashboard_avg_monthly') }}: ₪{{ summary.avg_monthly_savings|currency }}</div>
             </div>
         </div>
 
         <div class="card transactions">
             <div class="card-icon">📊</div>
             <div class="card-content">
-                <div class="card-label">חודשים</div>
+                <div class="card-label">{{ t('dashboard_months_tracked') }}</div>
                 <div class="card-value">{{ summary.months_count }}</div>
             </div>
         </div>
@@ -46,7 +46,7 @@
 
     <!-- Recommendations Panel -->
     <div class="recommendations-panel">
-        <h3>💡 המלצות לחיסכון</h3>
+        <h3>💡 {{ t('dashboard_recommendations') }}</h3>
         <ul class="recommendations-list">
             {% for recommendation in recommendations %}
             <li>{{ recommendation }}</li>
@@ -56,16 +56,16 @@
 
     <!-- 50/30/20 Rule Analysis -->
     <div class="rule-analysis">
-        <h3>📊 ניתוח כלל 50/30/20</h3>
+        <h3>📊 {{ t('dashboard_503020_analysis') }}</h3>
         <p class="rule-description">
-            כלל 50/30/20 ממליץ: 50% צרכים, 30% רצונות, 20% חיסכון והשקעות
+            {{ t('dashboard_503020_description') }}
         </p>
 
         <div class="rule-grid">
             <!-- Needs -->
             <div class="rule-card needs-card">
                 <div class="rule-header">
-                    <h4>🏠 צרכים</h4>
+                    <h4>🏠 {{ t('analysis_needs') }}</h4>
                     <span class="rule-badge {{ 'badge-good' if spending_analysis.needs.status == 'good' else 'badge-warning' }}">
                         {{ spending_analysis.needs.percentage|round(1) }}%
                     </span>
@@ -75,13 +75,13 @@
                     <div class="rule-bar-target" style="left: {{ spending_analysis.needs.target }}%"></div>
                 </div>
                 <div class="rule-amount">₪{{ spending_analysis.needs.amount|currency }}</div>
-                <div class="rule-target">יעד: {{ spending_analysis.needs.target }}%</div>
+                <div class="rule-target">{{ t('analysis_target') }}: {{ spending_analysis.needs.target }}%</div>
             </div>
 
             <!-- Wants -->
             <div class="rule-card wants-card">
                 <div class="rule-header">
-                    <h4>🎉 רצונות</h4>
+                    <h4>🎉 {{ t('analysis_wants') }}</h4>
                     <span class="rule-badge {{ 'badge-good' if spending_analysis.wants.status == 'good' else 'badge-warning' }}">
                         {{ spending_analysis.wants.percentage|round(1) }}%
                     </span>
@@ -91,13 +91,13 @@
                     <div class="rule-bar-target" style="left: {{ spending_analysis.wants.target }}%"></div>
                 </div>
                 <div class="rule-amount">₪{{ spending_analysis.wants.amount|currency }}</div>
-                <div class="rule-target">יעד: {{ spending_analysis.wants.target }}%</div>
+                <div class="rule-target">{{ t('analysis_target') }}: {{ spending_analysis.wants.target }}%</div>
             </div>
 
             <!-- Investment/Savings -->
             <div class="rule-card invest-card">
                 <div class="rule-header">
-                    <h4>💎 חיסכון והשקעות</h4>
+                    <h4>💎 {{ t('dashboard_investment') }}</h4>
                     <span class="rule-badge {{ 'badge-excellent' if investment_analysis.status == 'excellent' else 'badge-warning' }}">
                         {{ investment_analysis.actual_percentage|round(1) }}%
                     </span>
@@ -107,7 +107,7 @@
                     <div class="rule-bar-target" style="left: {{ investment_analysis.target_percentage }}%"></div>
                 </div>
                 <div class="rule-amount">₪{{ investment_analysis.actual_savings|currency }}</div>
-                <div class="rule-target">יעד: {{ investment_analysis.target_percentage }}%</div>
+                <div class="rule-target">{{ t('analysis_target') }}: {{ investment_analysis.target_percentage }}%</div>
             </div>
         </div>
 
@@ -119,15 +119,15 @@
 
     <!-- Monthly Comparison Table -->
     <div class="category-section">
-        <h3>📅 השוואה בין חודשים</h3>
+        <h3>📅 {{ t('dashboard_monthly_comparison') }}</h3>
         <table class="expenses-table">
             <thead>
                 <tr>
-                    <th>חודש</th>
-                    <th>הכנסות</th>
-                    <th>הוצאות</th>
-                    <th>חיסכון</th>
-                    <th>% חיסכון</th>
+                    <th>{{ t('dashboard_month') }}</th>
+                    <th>{{ t('dashboard_income') }}</th>
+                    <th>{{ t('dashboard_expenses') }}</th>
+                    <th>{{ t('dashboard_savings') }}</th>
+                    <th>{{ t('dashboard_savings_percent') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -146,7 +146,7 @@
 
     <!-- Category Breakdown -->
     <div class="category-section">
-        <h3>📁 פילוח לפי קטגוריות (כל החודשים)</h3>
+        <h3>📁 {{ t('dashboard_category_breakdown') }}</h3>
         <div class="chart-grid">
             <div class="chart-container">
                 <canvas id="categoryPieChart"></canvas>
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(nwiCtx, {
         type: 'pie',
         data: {
-            labels: ['צרכים', 'רצונות', 'חיסכון והשקעות'],
+            labels: ['{{ t("analysis_needs") }}', '{{ t("analysis_wants") }}', '{{ t("dashboard_investment") }}'],
             datasets: [{
                 data: [
                     {{ spending_analysis.needs.percentage|round(1) }},
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'התפלגות הוצאות - צרכים, רצונות וחיסכון',
+                    text: '{{ t("dashboard_expense_distribution") }}',
                     font: { size: 16 }
                 },
                 legend: {
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'התפלגות הוצאות לפי קטגוריות',
+                    text: '{{ t("dashboard_expense_by_category") }}',
                     font: { size: 14 }
                 },
                 legend: {
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: categoryLabels,
             datasets: [{
-                label: 'סכום',
+                label: '{{ t("dashboard_amount") }}',
                 data: categoryValues,
                 backgroundColor: colors.categories.slice(0, categoryLabels.length)
             }]
@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'הוצאות לפי קטגוריות',
+                    text: '{{ t("dashboard_expenses_by_category") }}',
                     font: { size: 14 }
                 },
                 legend: {

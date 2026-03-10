@@ -1,1 +1,55 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Database (local)
+expenses.db
+*.db
+
+# Personal data
+input_files/*.xlsx
+input_files/*.xls
+input_files/expenses.db
+
+# Generated reports
+reports/*.html
+reports/*.xlsx
+reports/*.pdf
+!reports/.gitkeep
+
+# Debug & temp files
+debug_*.py
+debug_*.txt
+*.txt
+nul
+app_backup.py
+test_*.py
+transaction_classifier.py
+deep_debug.py
+check_excel.py
+inspect_excel.py
+ai_learning.json
+parsing_debug.txt
+expense_filter_log.txt
+
+# IDE & tools
+.codegraph/
 .claude/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

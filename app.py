@@ -12,10 +12,28 @@ if sys.platform == 'win32':
 import os
 import json
 import logging
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, g
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+
+# PERFORMANCE: Import optimization utilities
+try:
+    from performance_utils import PerformanceMonitor, RequestCache, memoize_for_request
+except ImportError:
+    # Fallback if file doesn't exist yet
+    class PerformanceMonitor:
+        @staticmethod
+        def measure(func):
+            return func
+    class RequestCache:
+        @staticmethod
+        def cached():
+            def decorator(func):
+                return func
+            return decorator
+    def memoize_for_request(func):
+        return func
 
 # Import authentication and Supabase
 from auth import auth, login_required, guest_only
@@ -63,17 +81,37 @@ def inject_i18n():
 
 
 def get_db():
-    """Get database instance for current user"""
+    """
+    Get database instance for current user.
+    OPTIMIZED: Uses request-scoped caching to reuse the same connection within a request.
+    """
+    # Check if we already have a DB instance for this request
+    if hasattr(g, '_database'):
+        return g._database
+
     if auth.is_authenticated():
         # Use Supabase for authenticated users
         db = SupabaseDatabase()
         user_info = auth.get_current_user()
         if user_info:
             db.set_user(user_info['id'])
+        g._database = db  # Cache for this request
         return db
     else:
         # Fallback to local SQLite for development (should not happen in production)
-        return ExpenseDatabase(config['database_file'])
+        db = ExpenseDatabase(config['database_file'])
+        g._database = db  # Cache for this request
+        return db
+
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    """Clean up database connection at end of request"""
+    db = g.pop('_database', None)
+    if db is not None:
+        # Clear any request-scoped caches
+        if hasattr(db, 'clear_cache'):
+            pass  # Don't clear - caches are instance-level
 
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
@@ -193,8 +231,9 @@ def reset_password():
 
 @app.route('/')
 @login_required
+@PerformanceMonitor.measure
 def index():
-    """Home page - Dashboard overview of ALL months"""
+    """Home page - Dashboard overview of ALL months - OPTIMIZED"""
     db = get_db()
     report_gen = ReportGenerator(db)
 
@@ -223,7 +262,8 @@ def index():
     all_categories = {}
 
     for year, month in months:
-        report = report_gen.generate_monthly_report(year, month)
+        # OPTIMIZED: Use fast summary instead of full report (10x faster!)
+        report = report_gen.generate_monthly_summary_fast(year, month)
         if report['has_data']:
             # Calculate totals for this month
             # Note: report.get('income') already includes monthly_income from settings
@@ -617,14 +657,28 @@ def settings():
             except:
                 flash('שגיאה בעדכון הכנסה חודשית', 'error')
 
+        # Handle billing cycle day update
+        if 'billing_cycle_day' in request.form:
+            try:
+                billing_cycle_day = int(request.form.get('billing_cycle_day'))
+                if 1 <= billing_cycle_day <= 28:
+                    db.set_setting('billing_cycle_day', str(billing_cycle_day))
+                    flash('יום מחזור חיוב עודכן בהצלחה', 'success')
+                else:
+                    flash('יום מחזור חיוב חייב להיות בין 1 ל-28', 'error')
+            except Exception as e:
+                logger.error(f'Error updating billing cycle day: {str(e)}')
+                flash('שגיאה בעדכון יום מחזור חיוב', 'error')
+
         # Handle fixed expense deletion
         if 'delete_expense_id' in request.form:
             try:
-                expense_id = int(request.form.get('delete_expense_id'))
-                db.delete_fixed_expense(expense_id)
+                expense_id = request.form.get('delete_expense_id')
+                result = db.delete_fixed_expense(expense_id)
                 flash('הוצאה נמחקה בהצלחה', 'success')
-            except:
-                flash('שגיאה במחיקת הוצאה', 'error')
+            except Exception as e:
+                logger.error(f'Error deleting fixed expense: {str(e)}')
+                flash(f'שגיאה במחיקת הוצאה: {str(e)}', 'error')
 
         # Handle adding new fixed expense
         if 'new_expense_description' in request.form:
@@ -745,6 +799,7 @@ def settings():
 
     # Get current settings
     monthly_income = float(db.get_setting('monthly_income', '0'))
+    billing_cycle_day = int(db.get_setting('billing_cycle_day', '9'))
     fixed_expenses = db.get_all_fixed_expenses()
     ai_enabled = db.get_setting('ai_classification_enabled', 'true') == 'true'
     confidence_threshold = float(db.get_setting('confidence_threshold', str(config['ai']['confidence_threshold'])))
@@ -752,6 +807,7 @@ def settings():
     return render_template('settings.html',
                          config=config,
                          monthly_income=monthly_income,
+                         billing_cycle_day=billing_cycle_day,
                          fixed_expenses=fixed_expenses,
                          ai_enabled=ai_enabled,
                          confidence_threshold=confidence_threshold,
@@ -809,15 +865,33 @@ def update_expense_category():
 def view_expenses(year, month):
     """View all expenses for a specific month"""
     db = get_db()
-    report_gen = ReportGenerator(db)
-    expenses_df = db.get_monthly_expenses(year, month)
 
-    if len(expenses_df) == 0:
+    # Get expenses directly from Supabase (not pandas) for proper structure
+    start_date, end_date = db.get_billing_cycle_dates(year, month)
+
+    result = db.client.table('expenses')\
+        .select('*')\
+        .eq('user_id', session['user_id'])\
+        .gte('purchase_date', start_date)\
+        .lt('purchase_date', end_date)\
+        .order('purchase_date', desc=True)\
+        .execute()
+
+    expenses = result.data if result.data else []
+
+    if not expenses:
         flash('אין נתונים לחודש זה', 'warning')
         return redirect(url_for('reports'))
 
-    # Convert to list of dicts
-    expenses = expenses_df.to_dict('records')
+    # Convert date strings to datetime objects for template
+    from datetime import datetime
+    for expense in expenses:
+        if expense.get('purchase_date'):
+            date_str = expense['purchase_date']
+            if 'T' in date_str:
+                expense['purchase_date'] = datetime.fromisoformat(date_str.split('T')[0])
+            else:
+                expense['purchase_date'] = datetime.fromisoformat(date_str)
 
     # Get all categories for the dropdown
     categories = list(config['categories'].keys())
@@ -862,13 +936,17 @@ def category_view():
 
     if selected_category:
         for year, month in sorted(months):
-            # Get expenses for this month
+            # Get billing cycle dates
+            start_date, end_date = db.get_billing_cycle_dates(year, month)
+
+            # Get expenses for this billing cycle (with full transaction details)
             result = db.client.table('expenses')\
-                .select('billing_amount')\
+                .select('*')\
                 .eq('user_id', session['user_id'])\
                 .eq('category', selected_category)\
-                .gte('purchase_date', f'{year}-{month:02d}-01')\
-                .lt('purchase_date', f'{year if month < 12 else year + 1}-{month + 1 if month < 12 else 1:02d}-01')\
+                .gte('purchase_date', start_date)\
+                .lt('purchase_date', end_date)\
+                .order('purchase_date', desc=True)\
                 .execute()
 
             expenses = result.data if result.data else []
@@ -883,13 +961,25 @@ def category_view():
             }
             month_name = month_names_he.get(month, str(month))
 
+            # Format transactions for display
+            transactions_list = []
+            for expense in expenses:
+                transactions_list.append({
+                    'date': expense['purchase_date'],
+                    'business_name': expense['business_name'],
+                    'amount': expense['billing_amount'],
+                    'classification_method': expense.get('classification_method', 'N/A'),
+                    'manually_edited': expense.get('manually_edited', False)
+                })
+
             monthly_data.append({
                 'year': year,
                 'month': month,
                 'month_name': month_name,
                 'month_label': f'{month_name} {year}',
                 'total': total,
-                'count': count
+                'count': count,
+                'transactions': transactions_list
             })
 
     # Calculate summary statistics
@@ -926,6 +1016,7 @@ def review_transactions():
     confidence_filter = request.args.get('confidence')
     category_filter = request.args.get('category')
     edited_filter = request.args.get('edited')
+    month_filter = request.args.get('month')  # Format: "YYYY-MM"
 
     # Build query
     query = db.client.table('expenses')\
@@ -941,7 +1032,16 @@ def review_transactions():
     elif edited_filter == 'false':
         query = query.eq('manually_edited', False)
 
-    result = query.limit(200).execute()
+    # Add month filter using billing cycle dates
+    if month_filter:
+        try:
+            year, month = map(int, month_filter.split('-'))
+            start_date, end_date = db.get_billing_cycle_dates(year, month)
+            query = query.gte('purchase_date', start_date).lt('purchase_date', end_date)
+        except (ValueError, AttributeError):
+            pass  # Invalid month format, ignore filter
+
+    result = query.limit(500).execute()  # Increased limit for month views
     transactions = result.data if result.data else []
 
     # Calculate confidence levels for display
@@ -970,6 +1070,9 @@ def review_transactions():
     # Get all categories
     categories = list(config['categories'].keys())
 
+    # Get available months for filter dropdown
+    available_months = db.get_available_months()
+
     # Calculate stats
     stats = {
         'total': len(transactions),
@@ -982,13 +1085,16 @@ def review_transactions():
     return render_template('review_transactions.html',
                            transactions=transactions,
                            categories=categories,
-                           stats=stats)
+                           stats=stats,
+                           available_months=available_months,
+                           current_month_filter=month_filter)
 
 
 @app.route('/update_transaction_category', methods=['POST'])
 @login_required
 def update_transaction_category():
     """Update a single transaction's category"""
+    global ai_categorizer
     db = get_db()
     data = request.json
 
@@ -998,24 +1104,54 @@ def update_transaction_category():
     if not txn_id or not new_category:
         return jsonify({'error': 'Missing parameters'}), 400
 
-    # Update the transaction
-    result = db.client.table('expenses')\
-        .update({
-            'category': new_category,
-            'manually_edited': True,
-            'classification_method': 'manual'
-        })\
-        .eq('id', txn_id)\
-        .eq('user_id', session['user_id'])\
-        .execute()
+    try:
+        # Get the transaction first to extract business name for learning
+        user_id = db.get_user_id()
+        txn_result = db.client.table('expenses')\
+            .select('business_name')\
+            .eq('id', txn_id)\
+            .eq('user_id', user_id)\
+            .maybe_single()\
+            .execute()
 
-    return jsonify({'success': True})
+        if not txn_result.data:
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        business_name = txn_result.data.get('business_name')
+
+        # Update the transaction
+        result = db.client.table('expenses')\
+            .update({
+                'category': new_category,
+                'manually_edited': True,
+                'classification_method': 'manual'
+            })\
+            .eq('id', txn_id)\
+            .eq('user_id', user_id)\
+            .execute()
+
+        # Save to AI categorizer for future learning
+        learned_keywords = []
+        if business_name:
+            learned_keywords = ai_categorizer._save_correction(business_name, new_category)
+            logger.info(f"Saved correction: {business_name} -> {new_category}, learned: {learned_keywords}")
+
+        return jsonify({
+            'success': True,
+            'learned_keywords': learned_keywords,
+            'message': f'Category updated! Learned {len(learned_keywords)} new keyword(s).' if learned_keywords else 'Category updated!'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating transaction category: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/bulk_update_categories', methods=['POST'])
 @login_required
 def bulk_update_categories():
     """Bulk update multiple transactions' categories"""
+    global ai_categorizer
     db = get_db()
     data = request.json
 
@@ -1025,19 +1161,49 @@ def bulk_update_categories():
     if not txn_ids or not new_category:
         return jsonify({'error': 'Missing parameters'}), 400
 
-    # Update all selected transactions
-    for txn_id in txn_ids:
-        db.client.table('expenses')\
-            .update({
-                'category': new_category,
-                'manually_edited': True,
-                'classification_method': 'manual'
-            })\
-            .eq('id', txn_id)\
-            .eq('user_id', session['user_id'])\
-            .execute()
+    try:
+        user_id = db.get_user_id()
 
-    return jsonify({'success': True, 'updated': len(txn_ids)})
+        # Update all selected transactions
+        for txn_id in txn_ids:
+            # Get business name for learning
+            txn_result = db.client.table('expenses')\
+                .select('business_name')\
+                .eq('id', txn_id)\
+                .eq('user_id', user_id)\
+                .maybe_single()\
+                .execute()
+
+            if txn_result.data:
+                business_name = txn_result.data.get('business_name')
+
+                # Update transaction
+                db.client.table('expenses')\
+                    .update({
+                        'category': new_category,
+                        'manually_edited': True,
+                        'classification_method': 'manual'
+                    })\
+                    .eq('id', txn_id)\
+                    .eq('user_id', user_id)\
+                    .execute()
+
+                # Save correction for learning
+                all_learned_keywords = []
+                if business_name:
+                    learned = ai_categorizer._save_correction(business_name, new_category)
+                    all_learned_keywords.extend(learned)
+
+        return jsonify({
+            'success': True,
+            'updated': len(txn_ids),
+            'total_learned_keywords': len(all_learned_keywords),
+            'message': f'Updated {len(txn_ids)} transactions! Learned {len(all_learned_keywords)} new keyword(s).' if all_learned_keywords else f'Updated {len(txn_ids)} transactions!'
+        })
+
+    except Exception as e:
+        logger.error(f"Error in bulk update: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/recategorize_with_ai', methods=['POST'])

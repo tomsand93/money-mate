@@ -204,6 +204,20 @@
     <div class="filters">
         <form method="GET" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
             <div class="filter-group">
+                <label>{{ t('month') if t('month') != 'month' else 'חודש' }}:</label>
+                <select name="month" class="category-select" onchange="this.form.submit()">
+                    <option value="">{{ t('all') }}</option>
+                    {% for year, month in available_months %}
+                    {% set month_value = "%d-%02d"|format(year, month) %}
+                    {% set month_names = {1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל', 5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט', 9: 'ספטמבר', 10: 'אוקטובר', 11: 'נובמבר', 12: 'דצמבר'} %}
+                    <option value="{{ month_value }}" {% if current_month_filter == month_value %}selected{% endif %}>
+                        {{ month_names[month] }} {{ year }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
                 <label>{{ t('filter_confidence') }}:</label>
                 <select name="confidence" class="category-select" onchange="this.form.submit()">
                     <option value="">{{ t('all') }}</option>
@@ -347,8 +361,16 @@ async function saveTransaction(txnId) {
         });
 
         if (response.ok) {
+            const data = await response.json();
             select.classList.remove('edited');
-            alert('{{ t("category_updated") }}');
+
+            // Show learning feedback
+            let message = '{{ t("category_updated") }}';
+            if (data.learned_keywords && data.learned_keywords.length > 0) {
+                message += '\n\n🎓 Learned ' + data.learned_keywords.length + ' new keyword(s):\n';
+                message += data.learned_keywords.map(k => '• ' + k).join('\n');
+            }
+            alert(message);
         } else {
             alert('{{ t("error_updating") }}');
         }
@@ -388,6 +410,12 @@ async function bulkUpdateCategory() {
         });
 
         if (response.ok) {
+            const data = await response.json();
+            let message = data.message || 'Categories updated successfully!';
+            if (data.total_learned_keywords > 0) {
+                message += '\n\n🎓 System learned ' + data.total_learned_keywords + ' new keyword(s) from your corrections!';
+            }
+            alert(message);
             location.reload();
         } else {
             alert('{{ t("error_updating") }}');

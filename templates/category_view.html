@@ -121,6 +121,86 @@
         font-size: 64px;
         margin-bottom: 20px;
     }
+
+    .month-row {
+        cursor: pointer;
+    }
+
+    .month-row:hover {
+        background: #e8f4f8 !important;
+    }
+
+    .expand-icon {
+        transition: transform 0.3s;
+        display: inline-block;
+        margin-left: 5px;
+    }
+
+    .expand-icon.expanded {
+        transform: rotate(90deg);
+    }
+
+    .transactions-detail {
+        display: none;
+    }
+
+    .transactions-detail.show {
+        display: table-row;
+    }
+
+    .transactions-detail td {
+        padding: 0 !important;
+        background: #f8f9fa;
+    }
+
+    .transactions-detail-content {
+        padding: 20px;
+    }
+
+    .transaction-item {
+        background: white;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        border-left: 3px solid var(--primary-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .transaction-item.manually-edited {
+        border-left-color: #ffc107;
+        background: #fff3cd;
+    }
+
+    .transaction-info {
+        flex: 1;
+    }
+
+    .transaction-amount {
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 16px;
+    }
+
+    .transaction-date {
+        font-size: 12px;
+        color: #999;
+    }
+
+    .transaction-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: #e7e7e7;
+        color: #666;
+        margin-right: 5px;
+    }
+
+    .transaction-badge.manual {
+        background: #ffc107;
+        color: #000;
+    }
 </style>
 {% endblock %}
 
@@ -186,11 +266,44 @@
             </thead>
             <tbody>
                 {% for data in monthly_data %}
-                <tr class="{% if data.month == summary.max_month.month and data.year == summary.max_month.year %}highlight-max{% elif data.month == summary.min_month.month and data.year == summary.min_month.year %}highlight-min{% endif %}">
-                    <td>{{ data.month_label }}</td>
+                <tr class="month-row {% if data.month == summary.max_month.month and data.year == summary.max_month.year %}highlight-max{% elif data.month == summary.min_month.month and data.year == summary.min_month.year %}highlight-min{% endif %}"
+                    onclick="toggleTransactions({{ loop.index0 }})">
+                    <td>
+                        <span class="expand-icon" id="expand-{{ loop.index0 }}">▶</span>
+                        {{ data.month_label }}
+                    </td>
                     <td>₪{{ data.total|currency }}</td>
                     <td>{{ data.count }}</td>
                     <td>₪{{ (data.total / data.count)|currency if data.count > 0 else '0.00' }}</td>
+                </tr>
+                <tr class="transactions-detail" id="details-{{ loop.index0 }}">
+                    <td colspan="4">
+                        <div class="transactions-detail-content">
+                            <h4 style="margin-bottom: 15px; color: var(--primary-color);">
+                                📋 {{ t('transactions') }} - {{ data.month_label }}
+                            </h4>
+                            {% if data.transactions %}
+                                {% for txn in data.transactions %}
+                                <div class="transaction-item {% if txn.manually_edited %}manually-edited{% endif %}">
+                                    <div class="transaction-info">
+                                        <div style="margin-bottom: 5px;">
+                                            <strong>{{ txn.business_name }}</strong>
+                                            {% if txn.manually_edited %}
+                                            <span class="transaction-badge manual">✏️ Manual</span>
+                                            {% else %}
+                                            <span class="transaction-badge">{{ txn.classification_method }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="transaction-date">{{ txn.date }}</div>
+                                    </div>
+                                    <div class="transaction-amount">₪{{ txn.amount|currency }}</div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p style="color: #999; text-align: center;">No transactions</p>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -209,6 +322,19 @@
 <script>
 function changeCategory(category) {
     window.location.href = `{{ url_for('category_view') }}?category=${encodeURIComponent(category)}`;
+}
+
+function toggleTransactions(index) {
+    const detailsRow = document.getElementById('details-' + index);
+    const expandIcon = document.getElementById('expand-' + index);
+
+    if (detailsRow.classList.contains('show')) {
+        detailsRow.classList.remove('show');
+        expandIcon.classList.remove('expanded');
+    } else {
+        detailsRow.classList.add('show');
+        expandIcon.classList.add('expanded');
+    }
 }
 
 {% if summary %}

@@ -27,6 +27,37 @@
         </form>
     </div>
 
+    <!-- Billing Cycle Day Section -->
+    <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">
+            📅 מחזור חיוב כרטיס אשראי / Billing Cycle Day
+        </h3>
+        <form method="POST" style="max-width: 600px;">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">
+                    יום מחזור חיוב (1-28) / Billing Cycle Day (1-28)
+                </label>
+                <input type="number"
+                       name="billing_cycle_day"
+                       min="1"
+                       max="28"
+                       value="{{ billing_cycle_day }}"
+                       required
+                       style="width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    <strong>HE:</strong> קובע את תאריך תחילת מחזור החיוב. לדוגמה: אם מחזור החיוב שלך הוא מה-9 לכל חודש, הזן 9.
+                    <br>
+                    <strong>EN:</strong> Sets the billing cycle start date. For example: if your billing cycle is from the 9th of each month, enter 9.
+                    <br>
+                    <strong>Example:</strong> Day 9 means expenses from Sept 9 to Oct 8 will appear in October's report.
+                </small>
+            </div>
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer;">
+                עדכן מחזור / Update Cycle
+            </button>
+        </form>
+    </div>
+
     <!-- Fixed Expenses Section -->
     <div class="settings-section" style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; max-width: 1200px; margin-left: auto; margin-right: auto;">
         <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">

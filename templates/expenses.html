@@ -30,29 +30,29 @@
             </thead>
             <tbody>
                 {% for expense in expenses %}
-                <tr id="expense-{{ expense.id }}" style="border-bottom: 1px solid #e2e8f0;" class="{{ 'manually-edited' if expense.manually_edited else '' }}">
-                    <td style="padding: 0.8rem;">{{ expense.purchase_date.strftime('%d/%m/%Y') if expense.purchase_date else 'N/A' }}</td>
-                    <td style="padding: 0.8rem; font-weight: 600;">{{ expense.business_name }}</td>
-                    <td style="padding: 0.8rem; direction: ltr; text-align: right;">₪{{ expense.billing_amount|currency }}</td>
+                <tr id="expense-{{ expense['id'] }}" style="border-bottom: 1px solid #e2e8f0;" class="{{ 'manually-edited' if expense.get('manually_edited') else '' }}">
+                    <td style="padding: 0.8rem;">{{ expense['purchase_date'].strftime('%d/%m/%Y') if expense.get('purchase_date') else 'N/A' }}</td>
+                    <td style="padding: 0.8rem; font-weight: 600;">{{ expense['business_name'] }}</td>
+                    <td style="padding: 0.8rem; direction: ltr; text-align: right;">₪{{ expense['billing_amount']|currency }}</td>
                     <td style="padding: 0.8rem;">
-                        <span class="category-badge" data-expense-id="{{ expense.id }}">{{ expense.category }}</span>
+                        <span class="category-badge" data-expense-id="{{ expense['id'] }}">{{ expense['category'] }}</span>
                     </td>
                     <td style="padding: 0.8rem; text-align: center;">
-                        {% if expense.classification_confidence %}
-                        <span class="confidence-badge" style="background: {{ 'var(--success-color)' if expense.classification_confidence >= 0.9 else '#ffc107' if expense.classification_confidence >= 0.7 else '#f44336' }}; color: white; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem;">
-                            {{ (expense.classification_confidence * 100)|round|int }}%
+                        {% if expense.get('classification_confidence') %}
+                        <span class="confidence-badge" style="background: {{ 'var(--success-color)' if expense['classification_confidence'] >= 0.9 else '#ffc107' if expense['classification_confidence'] >= 0.7 else '#f44336' }}; color: white; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem;">
+                            {{ (expense['classification_confidence'] * 100)|round|int }}%
                         </span>
                         {% endif %}
                     </td>
                     <td style="padding: 0.8rem; font-size: 0.9rem; color: #666;">
-                        {% if expense.classification_reason %}
-                            {{ expense.classification_reason }}
+                        {% if expense.get('classification_reason') %}
+                            {{ expense['classification_reason'] }}
                         {% else %}
                             לא זמין
                         {% endif %}
                     </td>
                     <td style="padding: 0.8rem; text-align: center;">
-                        <button onclick="editCategory({{ expense.id }}, '{{ expense.business_name|replace("'", "\\'") }}')"
+                        <button onclick="editCategory('{{ expense['id'] }}', '{{ expense['business_name']|replace("'", "\\'") }}')"
                                 style="background: var(--primary-color); color: white; padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                             ✏️ ערוך
                         </button>
@@ -114,13 +114,13 @@ async function saveCategory() {
     const newCategory = document.getElementById('newCategory').value;
 
     try {
-        const response = await fetch('/api/update_expense_category', {
+        const response = await fetch('/update_transaction_category', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                expense_id: currentExpenseId,
+                id: currentExpenseId,
                 category: newCategory
             })
         });
@@ -143,8 +143,16 @@ async function saveCategory() {
 
             closeModal();
 
-            // Show success message
-            alert('✅ הקטגוריה עודכנה בהצלחה! העסק יסווג אוטומטית לקטגוריה זו בעתיד.');
+            // Show success message with learning feedback
+            let message = '✅ הקטגוריה עודכנה בהצלחה!\n\n';
+            if (data.learned_keywords && data.learned_keywords.length > 0) {
+                message += `🎓 המערכת למדה ${data.learned_keywords.length} מילות מפתח חדשות:\n`;
+                message += data.learned_keywords.map(k => `• ${k}`).join('\n');
+                message += '\n\nעסקים דומים יסווגו אוטומטית בעתיד!';
+            } else {
+                message += 'העסק יסווג אוטומטית לקטגוריה זו בעתיד.';
+            }
+            alert(message);
         } else {
             alert('❌ שגיאה: ' + (data.error || 'לא ניתן לעדכן'));
         }

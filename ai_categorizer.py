@@ -36,44 +36,75 @@ class AICategorizer:
                 return json.load(f)
         return {}
 
-    def _save_correction(self, business_name: str, category: str):
-        """Save user correction for future learning and update keywords dynamically"""
+    def _save_correction(self, business_name: str, category: str) -> list:
+        """
+        Save user correction for future learning and update keywords dynamically.
+        Returns list of learned keywords for user feedback.
+        """
         # Save to user corrections
         self.user_corrections[business_name.lower()] = category
         with open(self.corrections_file, 'w', encoding='utf-8') as f:
             json.dump(self.user_corrections, f, ensure_ascii=False, indent=2)
 
         # Extract meaningful keywords from business name and add to category
+        learned_keywords = []
         if self.ai_config.get('enable_learning', True):
-            self._learn_from_correction(business_name, category)
+            learned_keywords = self._learn_from_correction(business_name, category)
 
-    def _learn_from_correction(self, business_name: str, category: str):
-        """Extract keywords from business name and add to category keywords"""
-        # Split business name into words
-        words = business_name.lower().split()
+        return learned_keywords
 
-        # Filter out common non-meaningful words
-        stop_words = {'בע"מ', 'בעמ', 'ltd', 'inc', 'ש.ע', 'שע', 'חנות', 'סניף', 'מס', 'מספר'}
+    def _learn_from_correction(self, business_name: str, category: str) -> list:
+        """
+        ENHANCED: Extract keywords from business name and add to category keywords.
+        Returns list of learned keywords for user feedback.
+        """
+        import re
+
+        # Split business name into words (better regex for Hebrew/English)
+        words = re.findall(r'\b[\w\']+\b', business_name.lower())
+
+        # Expanded stop words list (Hebrew & English)
+        stop_words = {
+            # Hebrew
+            'בע"מ', 'בעמ', 'בעם', 'ש.ע', 'שע', 'חנות', 'סניף', 'מס', 'מספר',
+            'ישראל', 'תל', 'אביב', 'ירושלים', 'חיפה', 'באר', 'שבע',
+            'רשת', 'חברת', 'קבוצת', 'מרכז', 'קניון', 'חברה',
+            # English
+            'ltd', 'inc', 'llc', 'corp', 'co', 'company', 'group', 'israel',
+            'tel', 'aviv', 'store', 'shop', 'market', 'center', 'mall',
+            # Common numbers/short words
+            'של', 'את', 'עם', 'על', 'the', 'and', 'for', 'with'
+        }
 
         # Get current keywords for this category
         current_keywords = set(k.lower() for k in self.config['categories'].get(category, []))
 
-        # Find new meaningful keywords (words that aren't already keywords)
+        # Find new meaningful keywords
         new_keywords = []
         for word in words:
-            # Clean the word
-            word = word.strip('.,;:!?()"\'')
+            # Clean the word (remove special chars but keep Hebrew/English letters)
+            word = re.sub(r'[^\w]', '', word)
 
-            # Skip if too short, is a stop word, or already exists
-            if len(word) < 3 or word in stop_words or word in current_keywords:
+            # Skip if:
+            # - Too short (< 3 chars)
+            # - Is a stop word
+            # - Already exists as keyword
+            # - Is purely numeric
+            if (len(word) < 3 or
+                word in stop_words or
+                word in current_keywords or
+                word.isdigit()):
                 continue
 
-            # Check if this word appears in the business name of other expenses with same category
-            # For now, we'll add it if it's a substantial word
-            if len(word) >= 4:  # Only add words with 4+ characters
+            # Add if it's a substantial word (4+ characters)
+            if len(word) >= 4:
+                new_keywords.append(word)
+            # Also add 3-character words if they're all Hebrew letters (like סופר, בנק)
+            elif len(word) == 3 and any('\u0590' <= c <= '\u05FF' for c in word):
                 new_keywords.append(word)
 
         # Add new keywords to config if any found
+        learned_keywords = []
         if new_keywords:
             config_path = Path('config_ai.json')
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -87,14 +118,18 @@ class AICategorizer:
             for keyword in new_keywords:
                 if keyword not in [k.lower() for k in config['categories'][category]]:
                     config['categories'][category].append(keyword)
+                    learned_keywords.append(keyword)
                     print(f"🎓 למדתי מילת מפתח חדשה: '{keyword}' -> {category}")
 
             # Save updated config
-            with open(config_path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
+            if learned_keywords:  # Only save if we actually learned something
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, ensure_ascii=False, indent=2)
 
-            # Reload config in memory
-            self.config = config
+                # Reload config in memory
+                self.config = config
+
+        return learned_keywords
 
     def categorize(self, business_name: str, amount: float = None,
                    ask_user_callback=None) -> Tuple[str, float, str, str]:
@@ -118,23 +153,60 @@ class AICategorizer:
         return "אחר", 0.5, "default", "לא נמצאה התאמה - סווג כ'אחר'"
 
     def _keyword_match(self, business_name: str) -> Optional[str]:
-        """Traditional keyword matching as fallback"""
+        """Traditional keyword matching as fallback (whole word matching)"""
         business_lower = business_name.lower()
+        # Split into words, removing punctuation
+        import re
+        business_words = set(re.findall(r'\b\w+\b', business_lower))
 
         for category, keywords in self.config['categories'].items():
             for keyword in keywords:
-                if keyword.lower() in business_lower:
-                    return category
+                keyword_lower = keyword.lower()
+                # Check if keyword appears as a whole word
+                if keyword_lower in business_words or keyword_lower in business_lower:
+                    # If keyword is in business_words, it's an exact match
+                    # Otherwise check if it's a substring (for multi-word keywords)
+                    if ' ' in keyword_lower or len(keyword_lower) >= 4:
+                        # Allow substring match for multi-word keywords or longer words
+                        if keyword_lower in business_lower:
+                            return category
+                    elif keyword_lower in business_words:
+                        # Only exact word match for short keywords
+                        return category
         return None
 
     def _keyword_match_with_reason(self, business_name: str) -> Tuple[Optional[str], Optional[str]]:
-        """Keyword matching that returns the matched keyword"""
+        """
+        Keyword matching that returns the matched keyword (whole word matching)
+
+        This prevents partial matches like "לי" matching inside "ישראלי"
+        """
         business_lower = business_name.lower()
+        # Split into words, removing punctuation
+        import re
+        business_words = set(re.findall(r'\b\w+\b', business_lower))
 
         for category, keywords in self.config['categories'].items():
             for keyword in keywords:
-                if keyword.lower() in business_lower:
-                    return category, keyword
+                keyword_lower = keyword.lower()
+
+                # Strategy:
+                # 1. For short keywords (< 4 chars): Require exact word match
+                # 2. For longer keywords or multi-word: Allow substring match
+
+                if ' ' in keyword_lower:
+                    # Multi-word keyword - use substring match
+                    if keyword_lower in business_lower:
+                        return category, keyword
+                elif len(keyword_lower) >= 4:
+                    # Long keyword - allow substring match (e.g., "סופר" in "סופרמרקט")
+                    if keyword_lower in business_lower:
+                        return category, keyword
+                else:
+                    # Short keyword - require exact word match
+                    if keyword_lower in business_words:
+                        return category, keyword
+
         return None, None
 
     def _ai_categorize(self, business_name: str, amount: float = None) -> Tuple[str, float]:

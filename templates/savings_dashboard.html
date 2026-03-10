@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}לוח בקרה - MoneyMate{% endblock %}
+{% block title %}{{ t('nav_dashboard') }} - {{ t('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard">
-    <h2 class="page-title">💰 לוח בקרה - מעקב חיסכון</h2>
+    <h2 class="page-title">💰 {{ t('nav_dashboard') }} - {{ t('savings_tracking') }}</h2>
 
     {% if summary %}
     <!-- Summary Cards -->
@@ -12,43 +12,43 @@
         <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
             <div class="card-icon" style="font-size: 2.5rem;">💎</div>
             <div class="card-content">
-                <div class="card-label">סך הכל נחסך</div>
+                <div class="card-label">{{ t('savings_total_saved') }}</div>
                 <div class="card-value" style="font-size: 2rem;">₪{{ summary.total_savings|currency }}</div>
-                <div class="card-subtitle">ב-{{ summary.months_tracked }} חודשים</div>
+                <div class="card-subtitle">{{ t('savings_in_months').replace('{count}', summary.months_tracked|string) }}</div>
             </div>
         </div>
 
         <div class="card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
             <div class="card-icon" style="font-size: 2.5rem;">📊</div>
             <div class="card-content">
-                <div class="card-label">חיסכון ממוצע</div>
+                <div class="card-label">{{ t('savings_average') }}</div>
                 <div class="card-value" style="font-size: 2rem;">₪{{ summary.avg_savings|currency }}</div>
-                <div class="card-subtitle">{{ summary.avg_percentage|round(1) }}% מההכנסה</div>
+                <div class="card-subtitle">{{ summary.avg_percentage|round(1) }}% {{ t('savings_of_income') }}</div>
             </div>
         </div>
 
         <div class="card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
             <div class="card-icon" style="font-size: 2.5rem;">🏆</div>
             <div class="card-content">
-                <div class="card-label">החודש הטוב ביותר</div>
+                <div class="card-label">{{ t('savings_best_month') }}</div>
                 <div class="card-value" style="font-size: 1.5rem;">₪{{ summary.best_month.amount|currency }}</div>
-                <div class="card-subtitle">{{ summary.best_month.percentage|round(1) }}% חיסכון</div>
+                <div class="card-subtitle">{{ summary.best_month.percentage|round(1) }}% {{ t('dashboard_savings') }}</div>
             </div>
         </div>
 
         <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
             <div class="card-icon" style="font-size: 2.5rem;">📉</div>
             <div class="card-content">
-                <div class="card-label">החודש החלש ביותר</div>
+                <div class="card-label">{{ t('savings_worst_month') }}</div>
                 <div class="card-value" style="font-size: 1.5rem;">₪{{ summary.worst_month.amount|currency }}</div>
-                <div class="card-subtitle">{{ summary.worst_month.percentage|round(1) }}% חיסכון</div>
+                <div class="card-subtitle">{{ summary.worst_month.percentage|round(1) }}% {{ t('dashboard_savings') }}</div>
             </div>
         </div>
     </div>
 
     <!-- Savings Trend Chart -->
     <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;">
-        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📈 מגמת חיסכון לאורך זמן</h3>
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📈 {{ t('savings_trend_chart') }}</h3>
         <div style="height: 400px; position: relative;">
             <canvas id="savingsChart"></canvas>
         </div>
@@ -56,27 +56,27 @@
 
     <!-- Savings Percentage Chart -->
     <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;">
-        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📊 אחוז חיסכון לפי חודש</h3>
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">📊 {{ t('savings_percentage_chart') }}</h3>
         <div style="height: 350px; position: relative;">
             <canvas id="percentageChart"></canvas>
         </div>
         <div style="margin-top: 1rem; text-align: center; color: #666;">
-            <small>יעד מומלץ: 20% חיסכון מהכנסה חודשית</small>
+            <small>{{ t('savings_recommended_target') }}</small>
         </div>
     </div>
 
     <!-- Monthly Breakdown Table -->
     <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">📋 פירוט חודשי</h3>
+        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">📋 {{ t('savings_monthly_breakdown') }}</h3>
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
-                    <th style="padding: 0.8rem; text-align: right;">חודש</th>
-                    <th style="padding: 0.8rem; text-align: right;">הכנסה</th>
-                    <th style="padding: 0.8rem; text-align: right;">הוצאות</th>
-                    <th style="padding: 0.8rem; text-align: right;">חיסכון</th>
-                    <th style="padding: 0.8rem; text-align: center;">% חיסכון</th>
-                    <th style="padding: 0.8rem; text-align: center;">סטטוס</th>
+                    <th style="padding: 0.8rem; text-align: right;">{{ t('dashboard_month') }}</th>
+                    <th style="padding: 0.8rem; text-align: right;">{{ t('dashboard_income') }}</th>
+                    <th style="padding: 0.8rem; text-align: right;">{{ t('dashboard_expenses') }}</th>
+                    <th style="padding: 0.8rem; text-align: right;">{{ t('dashboard_savings') }}</th>
+                    <th style="padding: 0.8rem; text-align: center;">{{ t('dashboard_savings_percent') }}</th>
+                    <th style="padding: 0.8rem; text-align: center;">{{ t('savings_status') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,15 +95,15 @@
                     <td style="padding: 0.8rem; text-align: center;">
                         {% if data.percentage >= 20 %}
                         <span style="background: #43e97b; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
-                            ✓ מצוין
+                            ✓ {{ t('savings_status_excellent') }}
                         </span>
                         {% elif data.percentage >= 10 %}
                         <span style="background: #ffc107; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
-                            ~ טוב
+                            ~ {{ t('savings_status_good') }}
                         </span>
                         {% else %}
                         <span style="background: #f5576c; color: white; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem;">
-                            ⚠ נמוך
+                            ⚠ {{ t('savings_status_low') }}
                         </span>
                         {% endif %}
                     </td>
@@ -116,10 +116,10 @@
     {% else %}
     <div style="text-align: center; padding: 4rem; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
-        <h3 style="color: #666; margin-bottom: 1rem;">אין מספיק נתונים להצגה</h3>
-        <p style="color: #999; margin-bottom: 2rem;">העלה קובצי כרטיס אשראי והזן הכנסות חודשיות כדי לעקוב אחר החיסכון שלך</p>
-        <a href="{{ url_for('upload') }}" style="background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; display: inline-block;">
-            העלה קובץ
+        <h3 style="color: #666; margin-bottom: 1rem;">{{ t('msg_no_data') }}</h3>
+        <p style="color: #999; margin-bottom: 2rem;">{{ t('msg_no_data_description') }}</p>
+        <a href="{{ url_for('upload_file') }}" style="background: var(--primary-color); color: white; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; display: inline-block;">
+            {{ t('msg_upload_file') }}
         </a>
     </div>
     {% endif %}

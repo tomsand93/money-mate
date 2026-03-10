@@ -1,219 +1,140 @@
-# מערכת מעקב הוצאות - Expense Tracker
+# Expance — Personal Expense Tracker
 
-מערכת לניהול ומעקב אחר הוצאות כרטיס אשראי עם יצירת דוחות חודשיים אינטראקטיביים.
+A full-stack web application for managing and analyzing personal credit card expenses. Upload monthly Excel statements, automatically categorize transactions with AI, and visualize spending through interactive dashboards.
 
-## תכונות
+## Features
 
-- ✅ קריאה אוטומטית של קבצי Excel של כרטיס אשראי
-- ✅ סיווג אוטומטי של הוצאות לקטגוריות לפי שם בית העסק
-- ✅ מעקב אחר הוצאות חודשיות והכנסות
-- ✅ יצירת דוחות HTML אינטראקטיביים עם גרפים
-- ✅ יצירת דוחות Excel מפורטים
-- ✅ חישוב חיסכון ואחוז חיסכון
-- ✅ סטטיסטיקות והוצאות מובילות
-- ✅ מעקב אחר הוצאות נוספות (לא מכרטיס האשראי)
+- **Excel Import** — Auto-detects and parses Israeli credit card statement formats (multiple card support)
+- **AI Categorization** — Classifies transactions by merchant name using a local Ollama model with a learning loop
+- **Interactive Dashboard** — Monthly spending breakdown, savings rate, category charts
+- **Savings Dashboard** — Track savings goals and monthly income vs. expenses
+- **Transaction Review** — Manually correct categories, bulk-update, or re-run AI classification
+- **Category View** — Drill down into any spending category across months
+- **Installment Tracking** — Detects and groups installment payments
+- **Multi-language** — Full Hebrew / English UI (Flask-Babel)
+- **Authentication** — Supabase-based user auth with signup, login, and password reset
+- **Reports** — Per-month HTML and Excel reports
 
-## התקנה
+## Tech Stack
 
-1. וודא שמותקן Python 3.8 ומעלה
-2. התקן את החבילות הנדרשות:
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python 3.10+, Flask 3 |
+| Database | Supabase (PostgreSQL) + local SQLite fallback |
+| Auth | Supabase Auth |
+| AI | Ollama (local LLM) via REST API |
+| Frontend | Jinja2 templates, vanilla JS, Chart.js |
+| i18n | Flask-Babel (Hebrew + English) |
+| Deployment | Gunicorn, Docker, Render-ready |
 
-```bash
-pip install -r requirements.txt
-```
-
-## מבנה הפרויקט
+## Project Structure
 
 ```
 expance/
-├── config.json              # הגדרות וקטגוריות
-├── main.py                  # תוכנית ראשית
-├── expense_processor.py     # עיבוד קבצי Excel
-├── database.py             # ניהול בסיס נתונים
-├── report_generator.py     # יצירת דוחות
-├── html_generator.py       # יצירת דוחות HTML
-├── input_files/            # תיקייה לקבצי Excel חדשים
-├── reports/                # דוחות שנוצרו
-└── expenses.db            # בסיס נתונים (נוצר אוטומטית)
+├── app.py                  # Flask app — routes & request handling
+├── auth.py                 # Authentication blueprint (Supabase)
+├── supabase_db.py          # Supabase database layer
+├── database.py             # Local SQLite database layer
+├── expense_processor.py    # Excel parsing & transaction normalization
+├── ai_categorizer.py       # Ollama AI categorization + learning loop
+├── financial_analyzer.py   # Spending analytics & statistics
+├── report_generator.py     # Report generation (HTML/Excel)
+├── performance_utils.py    # Caching & request performance helpers
+├── i18n.py                 # Bilingual string definitions (HE/EN)
+├── config.json             # Category keywords configuration
+├── config_ai.json          # AI model configuration
+├── smart_categories.json   # Learned category mappings
+├── supabase_migration.sql  # Database schema
+├── templates/              # Jinja2 HTML templates
+├── static/                 # CSS & JS assets
+├── scripts/                # Utility scripts (DB check, seed data)
+├── input_files/            # Place Excel statements here (gitignored)
+└── reports/                # Generated reports output (gitignored)
 ```
 
-## שימוש
+## Getting Started
 
-### מצב אינטראקטיבי
+### Prerequisites
 
-הרץ את התוכנית בלי פרמטרים:
+- Python 3.10+
+- A [Supabase](https://supabase.com) project (free tier works)
+- [Ollama](https://ollama.ai) running locally for AI categorization (optional)
+
+### 1. Clone & Install
 
 ```bash
-python main.py
+git clone <repo-url>
+cd expance
+pip install -r requirements.txt
 ```
 
-תוצג תפריט אינטראקטיבי עם האפשרויות הבאות:
-1. עיבוד קבצי כרטיס אשראי חדשים
-2. הגדרת הכנסה חודשית
-3. הוספת הוצאה נוספת
-4. יצירת דוח חודשי
-5. רשימת חודשים זמינים
-6. יציאה
+### 2. Configure Environment
 
-### מצב שורת פקודה
-
-#### עיבוד קבצים חדשים
-```bash
-python main.py process
-```
-
-#### יצירת דוח לחודש הנוכחי
-```bash
-python main.py report
-```
-
-#### יצירת דוח לחודש ספציפי
-```bash
-python main.py report 2024 11
-```
-
-#### רשימת חודשים זמינים
-```bash
-python main.py list
-```
-
-## תהליך עבודה חודשי
-
-### 1. הוספת קבצי Excel
-
-העתק את קבצי ה-Excel של כרטיס האשראי לתיקייה `input_files/`
-
-הקבצים צריכים לכלול את העמודות הבאות:
-- תאריך רכישה
-- שם בית עסק
-- סכום עסקה
-- מטבע עסקה
-- סכום חיוב
-- מטבע חיוב
-- מס' שובר
-- פירוט נוסף
-
-### 2. עיבוד הקבצים
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
-python main.py process
+cp .env.example .env
 ```
 
-המערכת תעבד רק קבצים חדשים שלא עובדו בעבר.
+Required variables:
 
-### 3. הגדרת הכנסה חודשית (אופציונלי)
-
-הרץ את התוכנית במצב אינטראקטיבי ובחר באפשרות 2:
-```bash
-python main.py
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
+SECRET_KEY=any-random-string
 ```
 
-### 4. הוספת הוצאות נוספות (אופציונלי)
+### 3. Set Up the Database
 
-הוצאות שלא נרשמות בכרטיס האשראי (מזומן, העברות בנקאיות וכו'):
-- בחר באפשרות 3 במצב אינטראקטיבי
-
-### 5. יצירת דוח חודשי
+Run the migration on your Supabase project:
 
 ```bash
-python main.py report
+# Paste the contents of supabase_migration.sql into the Supabase SQL editor
+# or use the Supabase CLI
 ```
 
-הדוח ייווצר בשני פורמטים:
-- **HTML**: דוח אינטראקטיבי עם גרפים וצבעים בתיקייה `reports/`
-- **Excel**: דוח מפורט לניתוח נוסף
+### 4. Run
 
-## התאמת קטגוריות
+```bash
+python app.py
+```
 
-ערוך את הקובץ [config.json](config.json) כדי להתאים את הקטגוריות והמילות מפתח:
+Visit `http://localhost:5000`. Sign up for an account, then upload your first Excel statement from the Upload page.
+
+### Docker
+
+```bash
+docker build -t expance .
+docker run -p 5000:5000 --env-file .env expance
+```
+
+## Usage
+
+1. **Upload** — Go to `/upload` and drop in your credit card Excel file (`.xlsx`)
+2. **Review** — Check `/review_transactions` to correct any misclassified transactions
+3. **Dashboard** — View `/` for the monthly spending overview with charts
+4. **Reports** — Browse past months at `/reports`
+
+## Configuration
+
+Edit `config.json` to add keyword-to-category mappings:
 
 ```json
 {
   "categories": {
-    "סופרמרקט": ["שופרסל", "רמי לוי", "ויקטורי"],
-    "מסעדות": ["מקדונלד", "בורגר", "פיצה"],
-    ...
+    "Supermarket": ["shufersal", "rami levy", "victory"],
+    "Restaurants": ["mcdonalds", "burger", "pizza"]
   }
 }
 ```
 
-המערכת תחפש את מילות המפתח בשם בית העסק ותסווג אוטומטית.
+The AI model learns from manual corrections and stores mappings in `smart_categories.json`.
 
-## הדוח החודשי כולל
+## Deployment
 
-### סיכום כללי
-- סך הכנסות
-- סך הוצאות (כרטיס + נוספות)
-- חיסכון ואחוז חיסכון
-- מספר עסקאות
+The app is Render-ready. Set environment variables in your Render dashboard and deploy directly from this repository. The `Procfile` and `Dockerfile` are included.
 
-### פילוח לפי קטגוריות
-- גרף עמודות צבעוני
-- טבלה מפורטת עם סכום ומספר עסקאות
-- ממוצע לעסקה בכל קטגוריה
+## License
 
-### סטטיסטיקות
-- ממוצע לעסקה
-- חציון
-- הוצאה מקסימלית/מינימלית
-- ימים עם הוצאות
-- ממוצע יומי
-
-### 10 ההוצאות הגדולות ביותר
-טבלה עם ההוצאות המשמעותיות ביותר בחודש
-
-## דוגמאות שימוש
-
-### תרחיש מלא לחודש
-
-```bash
-# 1. העתק קבצי Excel לתיקייה input_files/
-
-# 2. עבד את הקבצים
-python main.py process
-
-# 3. הוסף הכנסה (במצב אינטראקטיבי)
-python main.py
-# בחר 2, הזן שנה, חודש וסכום
-
-# 4. הוסף הוצאות נוספות אם יש
-# בחר 3, הזן פרטים
-
-# 5. צור דוח
-python main.py report
-
-# 6. פתח את הדוח ב-reports/report_2024_11.html
-```
-
-## טיפים
-
-1. **קבצים כפולים**: המערכת מונעת עיבוד כפול של אותו קובץ
-2. **קטגוריות חדשות**: הוסף מילות מפתח ל-config.json לשיפור הסיווג
-3. **הוצאות חריגות**: בדוק את רשימת ההוצאות המובילות למציאת הוצאות חריגות
-4. **מעקב חודשי**: השתמש באחוז החיסכון למעקב אחר מגמות לאורך זמן
-
-## פתרון בעיות
-
-### הקבצים לא מעובדים
-- וודא שהקבצים בפורמט .xlsx או .xls
-- בדוק שהעמודות בשפה העברית מופיעות בקובץ
-- וודא שאין קבצים פתוחים (סגור Excel)
-
-### קטגוריה "אחר" יותר מדי
-- הוסף מילות מפתח נוספות בקובץ config.json
-- השתמש במילים חלקיות (למשל "קפה" במקום "קפה ג'ו")
-
-### דוח לא מוצג נכון
-- פתח את קובץ ה-HTML בדפדפן מודרני (Chrome, Firefox, Edge)
-- וודא שהקידוד UTF-8 נשמר
-
-## תמיכה טכנית
-
-במידה ויש בעיות:
-1. בדוק שכל החבילות מותקנות: `pip install -r requirements.txt`
-2. וודא Python 3.8+: `python --version`
-3. בדוק שיש הרשאות כתיבה לתיקיות
-
----
-
-נוצר עם ❤️ בעזרת Claude Code
+MIT
