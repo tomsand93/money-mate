@@ -4,6 +4,7 @@ Sets up a test Flask app with all external services mocked.
 """
 import os
 import sys
+import types
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,26 @@ os.environ.setdefault('SUPABASE_URL', 'https://test.supabase.co')
 os.environ.setdefault('SUPABASE_ANON_KEY', 'test_anon_key')
 os.environ.setdefault('SUPABASE_SERVICE_KEY', 'test_service_key')
 os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-pytest')
+
+
+def _ensure_supabase_module():
+    """
+    Provide a lightweight supabase module stub for test environments where the
+    real dependency is not installed yet.
+    """
+    if 'supabase' in sys.modules:
+        return
+
+    try:
+        __import__('supabase')
+    except ModuleNotFoundError:
+        stub = types.ModuleType('supabase')
+        stub.Client = object
+        stub.create_client = MagicMock()
+        sys.modules['supabase'] = stub
+
+
+_ensure_supabase_module()
 
 
 def _make_mock_client():
