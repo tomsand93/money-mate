@@ -64,6 +64,16 @@ money-mate/
 │   └── test_api_endpoints.py
 ├── .github/workflows/      # CI/CD
 │   └── ci.yml              # flake8 + pytest
+├── input_files/            # Your Excel uploads (gitignored, auto-created)
+├── reports/                # Generated reports (gitignored, auto-created)
+└── scripts/                # Utility scripts
+│   ├── conftest.py         # Test fixtures (Supabase mock)
+│   ├── test_upload_parsing.py
+│   ├── test_ai_categorizer.py
+│   ├── test_expense_crud.py
+│   └── test_api_endpoints.py
+├── .github/workflows/      # CI/CD
+│   └── ci.yml              # flake8 + pytest
 └── scripts/                # Utility scripts
 ```
 
@@ -110,6 +120,8 @@ Run the migration on your Supabase project:
 ### 4. Configure Your Categories (Optional)
 
 The app comes with generic category examples. To add your personal merchants and keywords:
+
+> **Note:** All `.local.json` files are automatically gitignored. Your personal data stays on your machine and is never committed to git.
 
 ```bash
 # Copy the generic config to create your local override
