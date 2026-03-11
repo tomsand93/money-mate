@@ -19,6 +19,8 @@ expenses.db
 *.db
 
 # Personal data
+input_files/
+reports/
 input_files/*.xlsx
 input_files/*.xls
 input_files/expenses.db
