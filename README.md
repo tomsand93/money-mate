@@ -30,7 +30,7 @@ A full-stack web application for managing and analyzing personal credit card exp
 ## Project Structure
 
 ```
-expance/
+money-mate/
 ├── app.py                  # Flask app factory — auth routes + dashboard
 ├── auth.py                 # Supabase auth decorators (@login_required, @guest_only)
 ├── extensions.py           # Shared singletons (config, processor, AI, analyzer)
