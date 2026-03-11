@@ -1,48 +1,48 @@
 {
-  "comment": "Smart categorization rules - No AI/Ollama needed!",
+  "comment": "Smart categorization rules - example configuration",
   "rules": {
-    "טיפוס וספורט": {
-      "keywords": ["טיפוס", "ביקסקופ", "סלע מוח", "קיר טיפוס", "climbing", "בולדר", "boulder", "CARBON GRIP", "עומדות מטפוט", "עמותת מטפסי", "מטפסי תל אביב", "גקו קיר", "gym", "fitness", "ספורט"],
+    "ספורט וכושר": {
+      "keywords": ["טיפוס", "climbing", "בולדר", "boulder", "gym", "fitness", "ספורט"],
       "patterns": ["*climb*", "*boulder*", "*gym*", "*sport*"]
     },
     "תחבורה": {
-      "keywords": ["דלק", "פז", "סונול", "תחנת דלק", "חניה", "גט טקסי", "רכבת ישראל", "מוניות", "תדלוק", "עירית חיפה", "עיריית", "דור -", "רכב", "car", "taxi", "train", "bus", "אוטובוס"],
+      "keywords": ["דלק", "פז", "סונול", "תחנת דלק", "חניה", "גט טקסי", "רכבת ישראל", "מוניות", "תדלוק"],
       "patterns": ["*דלק*", "*חניה*", "*taxi*", "*רכבת*"]
     },
     "אוכל בחוץ": {
-      "keywords": ["ברדא פוראבר", "אוכל בחוץ", "sun flour", "מרכזי דגן", "קפה", "פלאפל", "tekram", "ג'סמינו", "הכל לבנו ולבת", "פול אנד בר", "מאפיית", "בי פרש", "בר ", "חמארה", "מנו וינו", "צאקולי", "פלמר", "מפגש הגליל", "מקדונלד", "בורגר", "פיצה", "רשת קפה", "מסעדה", "סושי", "וולט", "טנא", "CATCH RESTAURANT", "RESTAURANT", "בר מנזר", "יום טוב", "café", "restaurant", "food", "coffee"],
+      "keywords": ["קפה", "פלאפל", "מקדונלד", "בורגר", "פיצה", "רשת קפה", "מסעדה", "סושי", "restaurant", "cafe", "coffee"],
       "patterns": ["*קפה*", "*מסעדה*", "*restaurant*", "*bar*", "*burger*", "*pizza*"]
     },
     "סופרמרקט": {
-      "keywords": ["שופרסל", "רמי לוי", "ויקטורי", "מחסני השוק", "יינות בי", "AM:PM", "מינימרקט", "CARREFOUR", "מימי מרכז בגדים", "מריו מרקט", "מיני מרקט", "PM:AM", "מעדניית", "מעדנית", "מעדניה", "מגא בעיר", "מגה בעיר", "שוק אורנים", "אי.אם.פי.אם", "סופר", "market", "grocery"],
+      "keywords": ["שופרסל", "רמי לוי", "ויקטורי", "מחסני השוק", "יינות בי", "AM:PM", "מינימרקט", "מגה בעיר", "סופר", "market"],
       "patterns": ["*סופר*", "*market*", "*שוק*", "*מרקט*"]
     },
     "נסיעות וטיולים": {
-      "keywords": ["TRIP.COM", "טיסה", "מלון", "HOTEL", "TREEHOUSE", "DUBAI", "פספורטכארד", "BOOKING", "JON MATTAENG", "נסיעה", "vacation", "travel", "flight", "airbnb"],
+      "keywords": ["טיסה", "מלון", "HOTEL", "BOOKING", "airbnb", "vacation", "travel", "flight"],
       "patterns": ["*hotel*", "*flight*", "*booking*", "*airbnb*", "*trip*"]
     },
     "בילויים": {
-      "keywords": ["סינמה", "קולנוע", "כרטיסים", "חוגים", "פעילות", "STEAMGAMES", "STEAM", "GRINDR", "GOOGLE G", "KISS", "entertainment", "cinema", "movie", "game"],
+      "keywords": ["סינמה", "קולנוע", "כרטיסים", "חוגים", "פעילות", "STEAM"],
       "patterns": ["*cinema*", "*movie*", "*game*", "*סינמה*", "*קולנוע*"]
     },
     "בריאות": {
-      "keywords": ["סופר פארם", "ניו פארם", "בית מרקחת", "קופת חולים", "IHERB", "גוד פארם", "צירס", "pharmacy", "health", "doctor", "clinic", "רופא"],
+      "keywords": ["סופר פארם", "ניו פארם", "בית מרקחת", "קופת חולים", "pharmacy", "health"],
       "patterns": ["*פארם*", "*pharmacy*", "*clinic*", "*health*"]
     },
     "ביגוד והנעלה": {
-      "keywords": ["זארה", "H&M", "פוקס", "קסטרו", "טרמינל איקס", "נעליים", "בגדים", "clothing", "shoes", "fashion"],
+      "keywords": ["זארה", "H&M", "פוקס", "קסטרו", "נעליים", "בגדים", "clothing", "shoes"],
       "patterns": ["*fashion*", "*shoes*", "*clothing*", "*בגדים*"]
     },
     "קניות אונליין": {
-      "keywords": ["אמזון", "עליאקספרס", "אליבאבא", "איביי", "ALIEXPRESS", "PAYBOX", "amazon", "ebay", "online", "אונליין"],
-      "patterns": ["*amazon*", "*ebay*", "*aliexpress*", "*paypal*"]
+      "keywords": ["אמזון", "עליאקספרס", "איביי", "amazon", "ebay"],
+      "patterns": ["*amazon*", "*ebay*", "*aliexpress*"]
     },
     "טיפוח אישי": {
-      "keywords": ["מספרה", "ספר", "תספורת", "barber", "hair", "salon", "beauty"],
-      "patterns": ["*salon*", "*beauty*", "*hair*", "*ספר*"]
+      "keywords": ["מספרה", "ספר", "תספורת", "barber", "hair", "salon"],
+      "patterns": ["*salon*", "*beauty*", "*hair*"]
     },
     "חשבונות ומנויים": {
-      "keywords": ["חשמל", "ארנונה", "אינטרנט", "סלולרי", "פלאפון", "סלקום", "פרטנר", "HOT", "נטפליקס", "ספוטיפי", "תשבונת", "מי כרמל", "הוראת קבע", "מים", "דמי כרטיס", "דמי הנפקה", "OPENAI", "CHATGPT", "GOOGLE ONE", "subscription", "bill", "utility"],
+      "keywords": ["חשמל", "ארנונה", "אינטרנט", "סלולרי", "סלקום", "פרטנר", "HOT", "נטפליקס", "ספוטיפי"],
       "patterns": ["*subscription*", "*bill*", "*utility*", "*נטפליקס*", "*spotify*"]
     }
   }
