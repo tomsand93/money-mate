@@ -4,6 +4,7 @@ Database helper — request-scoped DB instance retrieval.
 import json
 import logging
 from flask import g
+from pathlib import Path
 
 from auth import auth
 
@@ -29,7 +30,8 @@ def get_db():
 
     # Fallback: local SQLite (development / unauthenticated)
     from database import ExpenseDatabase
-    with open('config.json', 'r', encoding='utf-8') as f:
+    config_path = 'config.local.json' if Path('config.local.json').exists() else 'config.json'
+    with open(config_path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
     db = ExpenseDatabase(cfg['database_file'])
     g._database = db

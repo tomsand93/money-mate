@@ -3,6 +3,7 @@ Admin blueprint — settings, onboarding, AI categorisation API.
 """
 import json
 import logging
+from pathlib import Path
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
@@ -13,6 +14,12 @@ import extensions
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('admin', __name__)
+
+
+def _get_config_save_path(base_path: str = 'config_ai.json') -> str:
+    """Return the path to save config to - prefers local override if it exists."""
+    local_path = base_path.replace('.json', '.local.json')
+    return local_path if Path(local_path).exists() else base_path
 
 
 @bp.route('/onboarding', methods=['GET', 'POST'])
@@ -120,7 +127,8 @@ def settings():
                 if 0 <= threshold <= 1:
                     db.set_setting('confidence_threshold', str(threshold))
                     config['ai']['confidence_threshold'] = threshold
-                    with open('config_ai.json', 'w', encoding='utf-8') as f:
+                    config_path = _get_config_save_path()
+                    with open(config_path, 'w', encoding='utf-8') as f:
                         json.dump(config, f, ensure_ascii=False, indent=2)
                     flash('רף ביטחון עודכן בהצלחה', 'success')
             except Exception as e:
@@ -133,7 +141,8 @@ def settings():
                 keywords_str = request.form.get('keywords', '')
                 keywords = [k.strip() for k in keywords_str.split(',') if k.strip()]
                 config['categories'][category] = keywords
-                with open('config_ai.json', 'w', encoding='utf-8') as f:
+                config_path = _get_config_save_path()
+                with open(config_path, 'w', encoding='utf-8') as f:
                     json.dump(config, f, ensure_ascii=False, indent=2)
                 flash(f'מילות מפתח לקטגוריה "{category}" עודכנו בהצלחה', 'success')
             except Exception as e:
@@ -150,10 +159,11 @@ def settings():
                         flash(f'הקטגוריה "{category_name}" כבר קיימת', 'error')
                     else:
                         config['categories'][category_name] = keywords
-                        with open('config_ai.json', 'w', encoding='utf-8') as f:
+                        config_path = _get_config_save_path()
+                        with open(config_path, 'w', encoding='utf-8') as f:
                             json.dump(config, f, ensure_ascii=False, indent=2)
                         from ai_categorizer import AICategorizer
-                        extensions.ai_categorizer = AICategorizer('config_ai.json')
+                        extensions.ai_categorizer = AICategorizer(config_path)
                         flash(f'קטגוריה "{category_name}" נוספה בהצלחה', 'success')
             except Exception as e:
                 logger.error(f'Add category failed: {e}')
@@ -175,11 +185,12 @@ def settings():
                     affected_rows = len(result.data) if result.data else 0
 
                     del config['categories'][category_to_delete]
-                    with open('config_ai.json', 'w', encoding='utf-8') as f:
+                    config_path = _get_config_save_path()
+                    with open(config_path, 'w', encoding='utf-8') as f:
                         json.dump(config, f, ensure_ascii=False, indent=2)
 
                     from ai_categorizer import AICategorizer
-                    extensions.ai_categorizer = AICategorizer('config_ai.json')
+                    extensions.ai_categorizer = AICategorizer(config_path)
 
                     flash(f'קטגוריה "{category_to_delete}" נמחקה. '
                           f'{affected_rows} הוצאות עודכנו ל"אחר"', 'success')

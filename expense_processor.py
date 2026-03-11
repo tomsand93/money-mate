@@ -7,11 +7,14 @@ from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 import json
 import re
+from pathlib import Path
 
 
 class ExpenseProcessor:
     def __init__(self, config_path: str = "config.json"):
-        with open(config_path, 'r', encoding='utf-8') as f:
+        # Use local override if exists
+        actual_path = config_path.replace('.json', '.local.json') if Path(config_path.replace('.json', '.local.json')).exists() else config_path
+        with open(actual_path, 'r', encoding='utf-8') as f:
             self.config = json.load(f)
         self.categories = self.config['categories']
 

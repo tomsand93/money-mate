@@ -4,6 +4,7 @@ Imported by blueprints to avoid circular imports.
 """
 import json
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,20 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_config_path(base_path: str) -> str:
+    """
+    Return path to config file, preferring local override if it exists.
+    For 'config.json' -> checks 'config.local.json' first.
+    """
+    local_path = base_path.replace('.json', '.local.json')
+    if Path(local_path).exists():
+        return local_path
+    return base_path
+
+
 def load_config(path: str = 'config_ai.json') -> dict:
-    with open(path, 'r', encoding='utf-8') as f:
+    actual_path = get_config_path(path)
+    with open(actual_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 

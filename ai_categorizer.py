@@ -18,8 +18,11 @@ from pathlib import Path
 class AICategorizer:
     def __init__(self, config_path: str = 'config_ai.json'):
         """Initialize AI categorizer with config"""
-        with open(config_path, 'r', encoding='utf-8') as f:
+        # Use local override if exists
+        actual_path = config_path.replace('.json', '.local.json') if Path(config_path.replace('.json', '.local.json')).exists() else config_path
+        with open(actual_path, 'r', encoding='utf-8') as f:
             self.config = json.load(f)
+        self._config_path = actual_path  # Store for saving
 
         self.categories = list(self.config['categories'].keys())
         self.ai_config = self.config['ai']
@@ -106,7 +109,7 @@ class AICategorizer:
         # Add new keywords to config if any found
         learned_keywords = []
         if new_keywords:
-            config_path = Path('config_ai.json')
+            config_path = Path(self._config_path)
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 

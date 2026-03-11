@@ -23,6 +23,12 @@ input_files/*.xlsx
 input_files/*.xls
 input_files/expenses.db
 
+# Local config overrides (keep your personal categories/settings)
+*.local.json
+config.local.json
+config_ai.local.json
+smart_categories.local.json
+
 # Generated reports
 reports/*.html
 reports/*.xlsx

@@ -12,12 +12,15 @@ if sys.platform == 'win32':
 import json
 from typing import Dict, List, Tuple
 from collections import defaultdict
+from pathlib import Path
 
 
 class FinancialAnalyzer:
     def __init__(self, config_path: str = 'config_ai.json'):
         """Initialize financial analyzer"""
-        with open(config_path, 'r', encoding='utf-8') as f:
+        # Use local override if exists
+        actual_path = config_path.replace('.json', '.local.json') if Path(config_path.replace('.json', '.local.json')).exists() else config_path
+        with open(actual_path, 'r', encoding='utf-8') as f:
             self.config = json.load(f)
 
         self.need_want_config = self.config['need_want_invest']
