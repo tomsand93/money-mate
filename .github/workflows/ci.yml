@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+    branches: ["master", "main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_ANON_KEY: test_anon_key
+      SUPABASE_SERVICE_KEY: test_service_key
+      SECRET_KEY: ci-test-secret-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest flake8
+
+      - name: Lint with flake8
+        run: |
+          # Stop the build on syntax errors and undefined names
+          flake8 . \
+            --count \
+            --select=E9,F63,F7,F82 \
+            --show-source \
+            --statistics \
+            --exclude=.git,__pycache__,reports,.codegraph
+          # Warn on style issues but don't fail the build
+          flake8 . \
+            --count \
+            --max-line-length=100 \
+            --statistics \
+            --exclude=.git,__pycache__,reports,.codegraph \
+            --exit-zero
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short

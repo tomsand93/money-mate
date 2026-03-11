@@ -92,12 +92,12 @@
             </div>
             <ul class="nav-menu">
                 <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">{{ t('nav_dashboard') }}</a></li>
-                <li><a href="{{ url_for('savings_dashboard') }}" class="{% if request.endpoint == 'savings_dashboard' %}active{% endif %}">{{ t('nav_savings') }}</a></li>
-                <li><a href="{{ url_for('category_view') }}" class="{% if request.endpoint == 'category_view' %}active{% endif %}">{{ t('category_view_title') }}</a></li>
-                <li><a href="{{ url_for('upload_file') }}" class="{% if request.endpoint == 'upload_file' %}active{% endif %}">{{ t('nav_upload') }}</a></li>
-                <li><a href="{{ url_for('review_transactions') }}" class="{% if request.endpoint == 'review_transactions' %}active{% endif %}">{{ t('nav_review_transactions') }}</a></li>
-                <li><a href="{{ url_for('reports') }}" class="{% if request.endpoint == 'reports' %}active{% endif %}">{{ t('nav_reports') }}</a></li>
-                <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">{{ t('nav_settings') }}</a></li>
+                <li><a href="{{ url_for('reports.savings_dashboard') }}" class="{% if request.endpoint == 'reports.savings_dashboard' %}active{% endif %}">{{ t('nav_savings') }}</a></li>
+                <li><a href="{{ url_for('reports.category_view') }}" class="{% if request.endpoint == 'reports.category_view' %}active{% endif %}">{{ t('category_view_title') }}</a></li>
+                <li><a href="{{ url_for('uploads.upload_file') }}" class="{% if request.endpoint == 'uploads.upload_file' %}active{% endif %}">{{ t('nav_upload') }}</a></li>
+                <li><a href="{{ url_for('expenses.review_transactions') }}" class="{% if request.endpoint == 'expenses.review_transactions' %}active{% endif %}">{{ t('nav_review_transactions') }}</a></li>
+                <li><a href="{{ url_for('reports.reports') }}" class="{% if request.endpoint == 'reports.reports' %}active{% endif %}">{{ t('nav_reports') }}</a></li>
+                <li><a href="{{ url_for('admin.settings') }}" class="{% if request.endpoint == 'admin.settings' %}active{% endif %}">{{ t('nav_settings') }}</a></li>
             </ul>
             <div class="nav-right">
                 <!-- Language Switcher -->
@@ -113,7 +113,7 @@
                         👤 {{ session.get('user_email', t('nav_account')) }} ▼
                     </button>
                     <div class="user-menu-dropdown" id="userMenuDropdown">
-                        <a href="{{ url_for('settings') }}">⚙️ {{ t('nav_settings') }}</a>
+                        <a href="{{ url_for('admin.settings') }}">⚙️ {{ t('nav_settings') }}</a>
                         <div class="divider"></div>
                         <a href="{{ url_for('logout') }}">🚪 {{ t('nav_logout') }}</a>
                     </div>
