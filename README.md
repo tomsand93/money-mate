@@ -2,25 +2,11 @@
 
 A full-stack web application for managing and analyzing personal credit card expenses. Upload monthly Excel statements, automatically categorize transactions with AI, and visualize spending through interactive dashboards.
 
-## Marketing Demo
+## Live Demo
 
-A standalone HTML marketing page showcasing the app's design and key metrics is available at [`marketing-demo.html`](marketing-demo.html).
+**[→ View the live demo](https://tomsand93.github.io/money-mate/marketing-demo.html)**
 
-Open it directly in any browser — no server required:
-
-```bash
-open marketing-demo.html        # macOS
-start marketing-demo.html       # Windows
-xdg-open marketing-demo.html    # Linux
-```
-
-The demo includes:
-- Bilingual UI (Hebrew / English) with RTL support
-- KPI strip (income, expenses, savings, months tracked)
-- 50/30/20 rule breakdown with animated progress bars
-- Monthly savings trend chart
-- Category breakdown charts (doughnut + horizontal bar)
-- Fully self-contained — Chart.js loaded from CDN, no build step
+> Hosted via GitHub Pages. If the link isn't live yet, go to **Settings → Pages** and set the source to `master` branch, `/ (root)`.
 
 ## Features
 
