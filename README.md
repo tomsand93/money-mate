@@ -1,134 +1,189 @@
-# MoneyMate
+# MoneyMate — Personal Expense Tracker
 
-MoneyMate is a Flask web app for importing credit card statements, categorizing expenses, and reviewing monthly spending with a bilingual Hebrew/English interface.
+A full-stack web application for managing and analyzing personal credit card expenses. Upload monthly Excel statements, automatically categorize transactions with AI, and visualize spending through interactive dashboards.
 
-## Preview
+## Marketing Demo
 
-[![MoneyMate demo preview](docs/preview.png)](https://tomsand93.github.io/money-mate/marketing-demo.html)
+A standalone HTML marketing page showcasing the app's design and key metrics is available at [`marketing-demo.html`](marketing-demo.html).
 
-[View live demo →](https://tomsand93.github.io/money-mate/marketing-demo.html)
+Open it directly in any browser — no server required:
 
-## What It Does
-
-- Imports `.xlsx` and `.xls` expense statements
-- Categorizes transactions with keyword rules and optional AI assistance
-- Stores data in Supabase, with local SQLite fallback for development
-- Provides dashboards, reports, category views, and transaction review flows
-- Supports user authentication with Supabase Auth
-
-## Repository Layout
-
-```text
-money-mate/
-  app.py                   Flask entry point and top-level routes
-  auth.py                  Authentication helpers and route guards
-  extensions.py            Shared singleton initialization
-  db_utils.py              Request-scoped database selection
-  database.py              Local SQLite implementation
-  supabase_db.py           Supabase-backed database implementation
-  expense_processor.py     Statement parsing and normalization
-  ai_categorizer.py        Rule-based and AI-assisted categorization
-  financial_analyzer.py    Spending analysis and recommendation logic
-  report_generator.py      Monthly report generation
-  i18n.py                  Hebrew/English UI strings
-  blueprints/              Feature routes
-  templates/               Jinja templates
-  static/                  CSS assets
-  scripts/                 Small maintenance/demo scripts
-  tests/                   Pytest suite
-  config.json              Base category configuration
-  config_ai.json           Base AI and analysis configuration
-  smart_categories.json    Base smart-rule examples
-  supabase_migration.sql   Database schema for Supabase
-  .env.example             Environment variable template
-  Dockerfile               Container deployment
-  Procfile                 Render/Gunicorn entry
+```bash
+open marketing-demo.html        # macOS
+start marketing-demo.html       # Windows
+xdg-open marketing-demo.html    # Linux
 ```
 
-## Setup
+The demo includes:
+- Bilingual UI (Hebrew / English) with RTL support
+- KPI strip (income, expenses, savings, months tracked)
+- 50/30/20 rule breakdown with animated progress bars
+- Monthly savings trend chart
+- Category breakdown charts (doughnut + horizontal bar)
+- Fully self-contained — Chart.js loaded from CDN, no build step
+
+## Features
+
+- **Excel Import** — Auto-detects and parses Israeli credit card statement formats (multiple card support)
+- **AI Categorization** — Classifies transactions by merchant name with smart keyword matching
+- **Interactive Dashboard** — Monthly spending breakdown, savings rate, category charts
+- **Savings Dashboard** — Track savings goals and monthly income vs. expenses
+- **Transaction Review** — Manually correct categories, bulk-update, or re-run AI classification
+- **Category View** — Drill down into any spending category across months
+- **Installment Tracking** — Detects and groups installment payments
+- **Multi-language** — Full Hebrew / English UI
+- **Authentication** — Supabase-based user auth with signup, login, and password reset
+- **Reports** — Per-month HTML and Excel reports
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python 3.10+, Flask 3, Blueprints |
+| Database | Supabase (PostgreSQL) + local SQLite fallback |
+| Auth | Supabase Auth |
+| Frontend | Jinja2 templates, vanilla JS, Chart.js |
+| i18n | Flask-Babel (Hebrew + English) |
+| Testing | pytest, mocked Supabase |
+| CI/CD | GitHub Actions (flake8 + pytest) |
+
+## Project Structure
+
+```
+money-mate/
+├── app.py                  # Flask app factory — auth routes + dashboard
+├── auth.py                 # Supabase auth decorators (@login_required, @guest_only)
+├── extensions.py           # Shared singletons (config, processor, AI, analyzer)
+├── db_utils.py             # Request-scoped DB helper (get_db())
+├── blueprints/             # Modular route blueprints
+│   ├── admin.py            # Settings, onboarding, AI API
+│   ├── expenses.py         # Expense CRUD, review, bulk actions
+│   ├── reports.py          # Reports, savings dashboard, category view
+│   └── uploads.py          # File upload & parsing
+├── supabase_db.py          # Supabase database layer
+├── database.py             # Local SQLite database layer
+├── expense_processor.py    # Excel parsing & transaction normalization
+├── ai_categorizer.py       # Smart keyword categorization + learning loop
+├── financial_analyzer.py   # Spending analytics & statistics
+├── report_generator.py     # Report generation (HTML/Excel)
+├── i18n.py                 # Bilingual string definitions (HE/EN)
+├── config.json             # Category keywords (generic, committed)
+├── config.local.json       # Your personal categories (gitignored) ← USE THIS
+├── config_ai.json          # AI config (generic, committed)
+├── config_ai.local.json    # Your personal AI config (gitignored) ← USE THIS
+├── smart_categories.json   # Learned rules (generic, committed)
+├── smart_categories.local.json # Your personal rules (gitignored) ← USE THIS
+├── supabase_migration.sql  # Database schema
+├── marketing-demo.html     # Standalone marketing page (open in browser)
+├── templates/              # Jinja2 HTML templates
+├── static/                 # CSS & JS assets
+├── tests/                  # Pytest tests (53 tests)
+│   ├── conftest.py         # Test fixtures (Supabase mock)
+│   ├── test_upload_parsing.py
+│   ├── test_ai_categorizer.py
+│   ├── test_expense_crud.py
+│   └── test_api_endpoints.py
+├── .github/workflows/      # CI/CD
+│   └── ci.yml              # flake8 + pytest
+└── scripts/                # Utility scripts
+```
+
+## Getting Started
 
 ### Prerequisites
 
 - Python 3.10+
-- A Supabase project for production-style auth and storage
+- A [Supabase](https://supabase.com) project (free tier works)
 
-### Install
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/tomsand93/money-mate.git
+cd money-mate
 pip install -r requirements.txt
 ```
 
-### Environment
+### 2. Configure Environment
 
-Copy `.env.example` to `.env` and provide real values:
-
-```bash
-cp .env.example .env
-```
-
-Required variables:
+Create a `.env` file:
 
 ```env
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_KEY=your-anon-key
 SUPABASE_SERVICE_KEY=your-service-key
-SECRET_KEY=replace-with-a-random-secret
+SECRET_KEY=any-random-string
 ```
 
-### Optional Local Overrides
+### 3. Set Up the Database
 
-The app prefers local override files when they exist:
+Run the migration on your Supabase project:
 
-- `config.local.json`
-- `config_ai.local.json`
-- `smart_categories.local.json`
+```bash
+# Paste the contents of supabase_migration.sql into the Supabase SQL editor
+```
 
-Create them by copying the committed base files:
+### 4. Configure Your Categories (Optional)
+
+The app comes with generic category examples. To add your personal merchants and keywords:
 
 ```bash
 cp config.json config.local.json
 cp config_ai.json config_ai.local.json
-cp smart_categories.json smart_categories.local.json
 ```
 
-These local override files are gitignored so personal categories and learned rules stay out of the repository.
+Edit `config.local.json` to add your personal keywords:
 
-### Database
+```json
+{
+  "categories": {
+    "ספורט וכושר": ["טיפוס", "climbing", "my_gym_name"],
+    "אוכל בחוץ": ["my_favorite_cafe", "restaurant_name"]
+  }
+}
+```
 
-For Supabase, apply `supabase_migration.sql` to your project.
+**Important:** `.local.json` files are gitignored — your personal data stays local.
 
-For local development fallback, the app will create `expenses.db` as needed.
-
-## Run
+### 5. Run
 
 ```bash
 python app.py
 ```
 
-Open `http://localhost:5000`.
+Visit `http://localhost:5000`. Sign up for an account, then upload your first Excel statement from the Upload page.
 
-## Tests
+### 6. Run Tests
 
 ```bash
-pytest tests/ -v
+pytest
 ```
 
-The test suite uses mocked Supabase clients and does not require a live Supabase project.
+## Usage
 
-## Utility Scripts
+1. **Upload** — Go to `/upload` and drop in your credit card Excel file (`.xlsx`)
+2. **Review** — Check `/review_transactions` to correct any misclassified transactions
+3. **Dashboard** — View `/` for the monthly spending overview with charts
+4. **Reports** — Browse past months at `/reports`
 
-- `python scripts/seed_demo.py`: create a small demo SQLite database
-- `python scripts/check_db.py`: inspect the local SQLite database contents
+## Configuration
 
-## Runtime Directories
+### Local Config Overrides
 
-These directories are intentionally present but should not be committed with user data:
+The app automatically prefers `*.local.json` files over the base configs:
 
-- `input_files/`
-- `reports/`
-
-They are kept in the repo only as placeholders via `.gitkeep`.
+| File | Git Status | Purpose |
+|------|------------|---------|
+| `config.json` | ✅ Committed | Generic example categories |
+| `config.local.json` | ❌ Gitignored | Your personal categories |
+| `config_ai.json` | ✅ Committed | Generic AI settings |
+| `config_ai.local.json` | ❌ Gitignored | Your personal AI settings |
+| `smart_categories.json` | ✅ Committed | Generic learned rules |
+| `smart_categories.local.json` | ❌ Gitignored | Your personal learned rules |
 
 ## Deployment
 
-The repository includes `Dockerfile`, `Procfile`, and a GitHub Actions workflow for linting and tests.
+The app is Render-ready. Set environment variables in your Render dashboard and deploy directly from this repository. The `Procfile` and `Dockerfile` are included.
+
+## License
+
+MIT
