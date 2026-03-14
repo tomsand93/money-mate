@@ -2,9 +2,11 @@
 
 A full-stack web application for managing and analyzing personal credit card expenses. Upload monthly Excel statements, automatically categorize transactions with AI, and visualize spending through interactive dashboards.
 
+![MoneyMate Demo](assets/demo.gif)
+
 ## Live Demo
 
-**[→ View the live demo](https://tomsand93.github.io/money-mate/marketing-demo.html)**
+**[→ View the live demo](https://tomsand93.github.io/money-mate/marketing-demo_new.html)**
 
 > Hosted via GitHub Pages. If the link isn't live yet, go to **Settings → Pages** and set the source to `master` branch, `/ (root)`.
 
@@ -60,7 +62,7 @@ money-mate/
 ├── smart_categories.json   # Learned rules (generic, committed)
 ├── smart_categories.local.json # Your personal rules (gitignored) ← USE THIS
 ├── supabase_migration.sql  # Database schema
-├── marketing-demo.html     # Standalone marketing page (open in browser)
+├── marketing-demo_new.html # Standalone marketing page (open in browser)
 ├── templates/              # Jinja2 HTML templates
 ├── static/                 # CSS & JS assets
 ├── tests/                  # Pytest tests (53 tests)
