@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -759,8 +759,8 @@
             </div>
             <div class="header-actions">
                 <div class="lang-switcher">
-                    <button class="lang-btn active" data-lang="he" onclick="setLanguage('he')">עברית</button>
-                    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">English</button>
+                    <button class="lang-btn" data-lang="he" onclick="setLanguage('he')">עברית</button>
+                    <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">English</button>
                 </div>
                 <a href="#" class="nav-btn">
                     <span data-i18n="cta_start">התחל חינם</span>
@@ -1079,7 +1079,7 @@
             }
         };
 
-        let currentLang = 'he';
+        let currentLang = 'en';
         let charts = {};
 
         // Language switcher
@@ -1479,8 +1479,18 @@
             scrollObserver.observe(section);
         });
 
+        // Apply translations for the initial language
+        function initLanguage() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+        }
+
         // Initialize on load
-        document.addEventListener('DOMContentLoaded', initCharts);
+        document.addEventListener('DOMContentLoaded', () => { initLanguage(); initCharts(); });
     </script>
 </body>
 </html>
