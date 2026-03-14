@@ -6,6 +6,7 @@ from functools import wraps
 from flask import g
 import time
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 

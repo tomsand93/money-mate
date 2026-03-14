@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyMate - Smart Financial Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --gradient-dark: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 30%, #0f0f2a 100%);
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.65);
+            --accent-needs: #667eea;
+            --accent-wants: #fa709a;
+            --accent-invest: #43e97b;
+            --card-glow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        [lang="en"] body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        [lang="he"] body {
+            font-family: 'Heebo', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--gradient-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Animated background orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.35;
+            animation: float 25s ease-in-out infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-orb-1 {
+            width: 700px;
+            height: 700px;
+            background: var(--gradient-1);
+            top: -250px;
+            right: -150px;
+            animation-delay: 0s;
+        }
+
+        .bg-orb-2 {
+            width: 600px;
+            height: 600px;
+            background: var(--gradient-2);
+            bottom: -200px;
+            left: -150px;
+            animation-delay: -8s;
+        }
+
+        .bg-orb-3 {
+            width: 500px;
+            height: 500px;
+            background: var(--gradient-4);
+            top: 40%;
+            left: 60%;
+            animation-delay: -16s;
+        }
+
+        .bg-orb-4 {
+            width: 350px;
+            height: 350px;
+            background: var(--gradient-3);
+            bottom: 20%;
+            right: 20%;
+            animation-delay: -12s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, -40px) scale(1.08); }
+            50% { transform: translate(-30px, 30px) scale(0.92); }
+            75% { transform: translate(30px, 40px) scale(1.05); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Language Switcher */
+        .lang-switcher {
+            display: flex;
+            align-items: center;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 0.3rem;
+            backdrop-filter: blur(10px);
+            gap: 0.2rem;
+        }
+
+        .lang-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lang-btn.active {
+            background: var(--gradient-3);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .lang-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-btn {
+            padding: 0.7rem 1.8rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: var(--gradient-3);
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 3rem 0 5rem;
+            position: relative;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease-out, pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(79, 172, 254, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(79, 172, 254, 0.4); }
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 5vw, 4rem);
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #4facfe 50%, #a8edea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 0.8s ease-out 0.15s both;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 650px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.45s both;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .kpi-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.8rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-gradient);
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.08), transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .kpi-card:hover::after {
+            opacity: 1;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--card-glow), 0 0 40px var(--card-glow-color, rgba(79, 172, 254, 0.2));
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-icon {
+            font-size: 2rem;
+        }
+
+        .kpi-trend-indicator {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .kpi-trend-indicator.positive {
+            background: rgba(67, 233, 123, 0.15);
+            color: #43e97b;
+        }
+
+        .kpi-trend-indicator.negative {
+            background: rgba(245, 87, 108, 0.15);
+            color: #f5576c;
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            margin-bottom: 0.3rem;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Chart Sections */
+        .chart-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* 50/30/20 Rule */
+        .rule-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 850px) {
+            .rule-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .rule-card {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 20px;
+            padding: 1.8rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .rule-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .rule-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, var(--rule-color) 0%, transparent 70%);
+            opacity: 0.05;
+        }
+
+        .rule-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.8rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rule-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rule-percentage {
+            font-size: 2.2rem;
+            font-weight: 900;
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            color: var(--rule-color);
+            margin-bottom: 0.3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rule-status {
+            font-size: 0.85rem;
+            color: #43e97b;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rule-bar-container {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .rule-bar {
+            height: 100%;
+            background: var(--rule-color);
+            border-radius: 10px;
+            transition: width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 0;
+            box-shadow: 0 0 10px var(--rule-color);
+        }
+
+        /* Chart containers */
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 850px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .chart-card h3 {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        .chart-full {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .chart-full .chart-container {
+            height: 350px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 700px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.2rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin-top: 3rem;
+        }
+
+        .cta-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 3.5rem;
+            backdrop-filter: blur(20px);
+            max-width: 750px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(79, 172, 254, 0.12) 0%, transparent 60%);
+            animation: rotate 30s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+        }
+
+        .cta-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2.5rem;
+            background: var(--gradient-3);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.35);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.45);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2.5rem 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .footer-logo {
+            font-family: 'Assistant', 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--gradient-3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Scroll animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* LTR Overrides */
+        [dir="ltr"] .kpi-card::before {
+            left: 0;
+            right: auto;
+        }
+
+        [dir="ltr"] .rule-card::after {
+            left: 0;
+            right: auto;
+        }
+
+        /* Language transition */
+        body {
+            transition: opacity 0.2s ease;
+        }
+
+        body.changing {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-orb bg-orb-4"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span>💰</span>
+                <span>MoneyMate</span>
+            </div>
+            <div class="header-actions">
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="he" onclick="setLanguage('he')">עברית</button>
+                    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">English</button>
+                </div>
+                <a href="#" class="nav-btn">
+                    <span data-i18n="cta_start">התחל חינם</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <span class="hero-badge">
+                <span>✨</span>
+                <span data-i18n="hero_badge">ניהול פיננסי חכם בעברית</span>
+            </span>
+            <h1 class="hero-title">
+                <span data-i18n="hero_title_1">השתלט על ההוצאות שלך</span><br>
+                <span data-i18n="hero_title_2">והגדל את החיסכון</span>
+            </h1>
+            <p class="hero-subtitle" data-i18n="hero_subtitle">
+                מערכת חכמה לניתוח הוצאות, מעקב אחר חשבונות האשראי, והמלצות מותאמות אישית - הכל במקום אחד
+            </p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">10K+</div>
+                    <div class="hero-stat-label" data-i18n="stat_users">משתמשים פעילים</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">₪50M+</div>
+                    <div class="hero-stat-label" data-i18n="stat_tracked">הוצאות מנוטרות</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">4.9★</div>
+                    <div class="hero-stat-label" data-i18n="stat_rating">דירוג משתמשים</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card" style="--card-gradient: var(--gradient-1); --card-glow-color: rgba(102, 126, 234, 0.3)">
+                <div class="kpi-header">
+                    <div class="kpi-icon">💵</div>
+                    <div class="kpi-trend-indicator positive">↑ 12%</div>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_income">הכנסה חודשית ממוצעת</div>
+                <div class="kpi-value">₪18,500</div>
+                <div class="kpi-subtitle" data-i18n="kpi_income_trend">יותר מהחודש שעבר</div>
+            </div>
+
+            <div class="kpi-card" style="--card-gradient: var(--gradient-2); --card-glow-color: rgba(245, 87, 108, 0.3)">
+                <div class="kpi-header">
+                    <div class="kpi-icon">💳</div>
+                    <div class="kpi-trend-indicator negative">↓ 8%</div>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_expenses">הוצאות חודשיות ממוצעות</div>
+                <div class="kpi-value">₪13,200</div>
+                <div class="kpi-subtitle" data-i18n="kpi_expenses_trend">פחות מהחודש שעבר</div>
+            </div>
+
+            <div class="kpi-card" style="--card-gradient: var(--gradient-4); --card-glow-color: rgba(67, 233, 123, 0.3)">
+                <div class="kpi-header">
+                    <div class="kpi-icon">💰</div>
+                    <div class="kpi-trend-indicator positive">28.6%</div>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_savings">חיסכון חודשי ממוצע</div>
+                <div class="kpi-value">₪5,300</div>
+                <div class="kpi-subtitle" data-i18n="kpi_savings_rate">שיעור חיסכון מעולה</div>
+            </div>
+
+            <div class="kpi-card" style="--card-gradient: var(--gradient-3); --card-glow-color: rgba(79, 172, 254, 0.3)">
+                <div class="kpi-header">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-trend-indicator positive">✓</div>
+                </div>
+                <div class="kpi-label" data-i18n="kpi_months">חודשים מנוטרים</div>
+                <div class="kpi-value">7</div>
+                <div class="kpi-subtitle" data-i18n="kpi_months_subtitle">מאז יולי 2025</div>
+            </div>
+        </div>
+
+        <!-- 50/30/20 Rule Section -->
+        <section class="chart-section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <h2 class="section-title" data-i18n="rule_title">כלל 50/30/20</h2>
+                <p class="section-subtitle" data-i18n="rule_subtitle">התפלגות ההוצאות שלך לפי הכלל הפיננסי המומלץ</p>
+            </div>
+
+            <div class="rule-grid">
+                <div class="rule-card" style="--rule-color: var(--accent-needs)">
+                    <div class="rule-icon">🏠</div>
+                    <div class="rule-name" data-i18n="rule_needs">צרכים</div>
+                    <div class="rule-percentage">47%</div>
+                    <div class="rule-status" data-i18n="rule_needs_status">מצוין! (יעד: 50%)</div>
+                    <div class="rule-bar-container">
+                        <div class="rule-bar" data-width="47"></div>
+                    </div>
+                </div>
+
+                <div class="rule-card" style="--rule-color: var(--accent-wants)">
+                    <div class="rule-icon">🎉</div>
+                    <div class="rule-name" data-i18n="rule_wants">רצונות</div>
+                    <div class="rule-percentage">25%</div>
+                    <div class="rule-status" data-i18n="rule_wants_status">טוב מאוד! (יעד: 30%)</div>
+                    <div class="rule-bar-container">
+                        <div class="rule-bar" data-width="25"></div>
+                    </div>
+                </div>
+
+                <div class="rule-card" style="--rule-color: var(--accent-invest)">
+                    <div class="rule-icon">💎</div>
+                    <div class="rule-name" data-i18n="rule_invest">חיסכון והשקעה</div>
+                    <div class="rule-percentage">28%</div>
+                    <div class="rule-status" data-i18n="rule_invest_status">מעולה! (יעד: 20%)</div>
+                    <div class="rule-bar-container">
+                        <div class="rule-bar" data-width="28"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card chart-full">
+                <h3 data-i18n="chart_distribution">התפלגות הוצאות כוללת</h3>
+                <div class="chart-container">
+                    <canvas id="rulePieChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Trends Section -->
+        <section class="chart-section">
+            <div class="section-header">
+                <span class="section-icon">📈</span>
+                <h2 class="section-title" data-i18n="trends_title">מגמות חודשיות</h2>
+                <p class="section-subtitle" data-i18n="trends_subtitle">מעקב אחר התקדמות החיסכון שלך לאורך זמן</p>
+            </div>
+
+            <div class="chart-card chart-full">
+                <h3 data-i18n="chart_savings_progress">התפתחות החיסכון החודשי</h3>
+                <div class="chart-container">
+                    <canvas id="trendLineChart"></canvas>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">₪8,420</div>
+                        <div class="stat-label" data-i18n="stat_best">החודש הטוב ביותר</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">₪2,100</div>
+                        <div class="stat-label" data-i18n="stat_worst">החודש הנמוך ביותר</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">+156%</div>
+                        <div class="stat-label" data-i18n="stat_improvement">שיפור מתחילת השנה</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">28.6%</div>
+                        <div class="stat-label" data-i18n="stat_avg_rate">שיעור חיסכון ממוצע</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category Breakdown Section -->
+        <section class="chart-section">
+            <div class="section-header">
+                <span class="section-icon">📁</span>
+                <h2 class="section-title" data-i18n="category_title">פירוט לפי קטגוריות</h2>
+                <p class="section-subtitle" data-i18n="category_subtitle">הבנה מעמיקה של אלו הוצאות קטגוריות הכי משמעותיות</p>
+            </div>
+
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3 data-i18n="chart_breakdown">חלוקת הוצאות</h3>
+                    <div class="chart-container">
+                        <canvas id="categoryDonutChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 data-i18n="chart_by_category">הוצאות לפי קטגוריה</h3>
+                    <div class="chart-container">
+                        <canvas id="categoryBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="cta-card">
+                <div class="cta-content">
+                    <h2 class="cta-title" data-i18n="cta_title">מוכן להשתלט על המצב הפיננסי שלך?</h2>
+                    <p class="cta-subtitle" data-i18n="cta_subtitle">הצטרף לאלפי משתמשים שכבר מנהלים את הכסף שלהם בצורה חכמה</p>
+                    <a href="#" class="cta-btn">
+                        <span data-i18n="cta_button">התחל בחינם</span>
+                        <span>→</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-logo">💰 MoneyMate</div>
+            <p data-i18n="footer_tagline">ניהול פיננסי חכם בעברית</p>
+            <p style="margin-top: 0.5rem; opacity: 0.5;">Made with 💜</p>
+        </footer>
+    </div>
+
+    <script>
+        // Translations
+        const translations = {
+            he: {
+                cta_start: "התחל חינם",
+                hero_badge: "ניהול פיננסי חכם בעברית",
+                hero_title_1: "השתלט על ההוצאות שלך",
+                hero_title_2: "והגדל את החיסכון",
+                hero_subtitle: "מערכת חכמה לניתוח הוצאות, מעקב אחר חשבונות האשראי, והמלצות מותאמות אישית - הכל במקום אחד",
+                stat_users: "משתמשים פעילים",
+                stat_tracked: "הוצאות מנוטרות",
+                stat_rating: "דירוג משתמשים",
+                kpi_income: "הכנסה חודשית ממוצעת",
+                kpi_income_trend: "יותר מהחודש שעבר",
+                kpi_expenses: "הוצאות חודשיות ממוצעות",
+                kpi_expenses_trend: "פחות מהחודש שעבר",
+                kpi_savings: "חיסכון חודשי ממוצע",
+                kpi_savings_rate: "שיעור חיסכון מעולה",
+                kpi_months: "חודשים מנוטרים",
+                kpi_months_subtitle: "מאז יולי 2025",
+                rule_title: "כלל 50/30/20",
+                rule_subtitle: "התפלגות ההוצאות שלך לפי הכלל הפיננסי המומלץ",
+                rule_needs: "צרכים",
+                rule_needs_status: "מצוין! (יעד: 50%)",
+                rule_wants: "רצונות",
+                rule_wants_status: "טוב מאוד! (יעד: 30%)",
+                rule_invest: "חיסכון והשקעה",
+                rule_invest_status: "מעולה! (יעד: 20%)",
+                chart_distribution: "התפלגות הוצאות כוללת",
+                trends_title: "מגמות חודשיות",
+                trends_subtitle: "מעקב אחר התקדמות החיסכון שלך לאורך זמן",
+                chart_savings_progress: "התפתחות החיסכון החודשי",
+                stat_best: "החודש הטוב ביותר",
+                stat_worst: "החודש הנמוך ביותר",
+                stat_improvement: "שיפור מתחילת השנה",
+                stat_avg_rate: "שיעור חיסכון ממוצע",
+                category_title: "פירוט לפי קטגוריות",
+                category_subtitle: "הבנה מעמיקה של אלו הוצאות קטגוריות הכי משמעותיות",
+                chart_breakdown: "חלוקת הוצאות",
+                chart_by_category: "הוצאות לפי קטגוריה",
+                cta_title: "מוכן להשתלט על המצב הפיננסי שלך?",
+                cta_subtitle: "הצטרף לאלפי משתמשים שכבר מנהלים את הכסף שלהם בצורה חכמה",
+                cta_button: "התחל בחינם",
+                footer_tagline: "ניהול פיננסי חכם בעברית",
+                chart_rule_labels: ['צרכים (50%)', 'רצונות (30%)', 'חיסכון והשקעה (20%)'],
+                chart_months: ['יולי 2025', 'אוגוסט 2025', 'ספטמבר 2025', 'אוקטובר 2025', 'נובמבר 2025', 'דצמבר 2025', 'ינואר 2026'],
+                chart_savings_label: 'חיסכון חודשי (₪)',
+                chart_target_label: 'יעד 20% (₪3,700)',
+                chart_tooltip_savings: 'חיסכון',
+                chart_tooltip_of_income: '% מההכנסה',
+                chart_target_line: 'יעד: 20%',
+                chart_categories: ['מזון וסופרמרקט', 'דיור', 'תחבורה', 'ביגוד והנעלה', 'פנאי ובילויים', 'בריאות', 'חינוך', 'אחר'],
+                chart_category_label: 'הוצאה חודשית ממוצעת',
+                chart_tooltip_total: '% מהסך ההוצאות'
+            },
+            en: {
+                cta_start: "Start Free",
+                hero_badge: "Smart Financial Management in English",
+                hero_title_1: "Take Control of Your Expenses",
+                hero_title_2: "Grow Your Savings",
+                hero_subtitle: "Smart expense tracking system, credit card monitoring, and personalized recommendations - all in one place",
+                stat_users: "Active Users",
+                stat_tracked: "Expenses Tracked",
+                stat_rating: "User Rating",
+                kpi_income: "Avg Monthly Income",
+                kpi_income_trend: "More than last month",
+                kpi_expenses: "Avg Monthly Expenses",
+                kpi_expenses_trend: "Less than last month",
+                kpi_savings: "Avg Monthly Savings",
+                kpi_savings_rate: "Excellent savings rate",
+                kpi_months: "Months Tracked",
+                kpi_months_subtitle: "Since July 2025",
+                rule_title: "50/30/20 Rule",
+                rule_subtitle: "Your expense distribution according to the recommended financial rule",
+                rule_needs: "Needs",
+                rule_needs_status: "Excellent! (Target: 50%)",
+                rule_wants: "Wants",
+                rule_wants_status: "Great! (Target: 30%)",
+                rule_invest: "Savings & Investment",
+                rule_invest_status: "Outstanding! (Target: 20%)",
+                chart_distribution: "Overall Expense Distribution",
+                trends_title: "Monthly Trends",
+                trends_subtitle: "Track your savings progress over time",
+                chart_savings_progress: "Monthly Savings Growth",
+                stat_best: "Best Month",
+                stat_worst: "Lowest Month",
+                stat_improvement: "Improvement since start of year",
+                stat_avg_rate: "Avg Savings Rate",
+                category_title: "Category Breakdown",
+                category_subtitle: "Deep understanding of which expense categories matter most",
+                chart_breakdown: "Expense Distribution",
+                chart_by_category: "Expenses by Category",
+                cta_title: "Ready to Take Control of Your Finances?",
+                cta_subtitle: "Join thousands of users already managing their money wisely",
+                cta_button: "Start Free",
+                footer_tagline: "Smart Financial Management",
+                chart_rule_labels: ['Needs (50%)', 'Wants (30%)', 'Savings & Investment (20%)'],
+                chart_months: ['Jul 2025', 'Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026'],
+                chart_savings_label: 'Monthly Savings (₪)',
+                chart_target_label: 'Target 20% (₪3,700)',
+                chart_tooltip_savings: 'Savings',
+                chart_tooltip_of_income: '% of income',
+                chart_target_line: 'Target: 20%',
+                chart_categories: ['Food & Groceries', 'Housing', 'Transportation', 'Clothing & Footwear', 'Leisure & Entertainment', 'Health', 'Education', 'Other'],
+                chart_category_label: 'Avg Monthly Expenses',
+                chart_tooltip_total: '% of total expenses'
+            }
+        };
+
+        let currentLang = 'he';
+        let charts = {};
+
+        // Language switcher
+        function setLanguage(lang) {
+            if (lang === currentLang) return;
+
+            document.body.classList.add('changing');
+
+            setTimeout(() => {
+                currentLang = lang;
+                const html = document.documentElement;
+                const dir = lang === 'he' ? 'rtl' : 'ltr';
+
+                html.setAttribute('lang', lang);
+                html.setAttribute('dir', dir);
+
+                // Update language buttons
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.lang === lang);
+                });
+
+                // Update all translatable elements
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (translations[lang][key]) {
+                        el.textContent = translations[lang][key];
+                    }
+                });
+
+                // Update charts
+                updateCharts();
+
+                document.body.classList.remove('changing');
+            }, 200);
+        }
+
+        // Chart.js global config
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.7)';
+        Chart.defaults.font.family = currentLang === 'he' ? "'Heebo', sans-serif" : "'Outfit', sans-serif";
+
+        // Get current translations
+        function t(key) {
+            return translations[currentLang][key] || key;
+        }
+
+        // Animate progress bars on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const bars = entry.target.querySelectorAll('.rule-bar');
+                    bars.forEach(bar => {
+                        const width = bar.dataset.width;
+                        bar.style.width = width + '%';
+                    });
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.chart-section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Initialize charts
+        function initCharts() {
+            // 1. 50/30/20 Pie Chart
+            const ruleCtx = document.getElementById('rulePieChart').getContext('2d');
+            charts.rule = new Chart(ruleCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: t('chart_rule_labels'),
+                    datasets: [{
+                        data: [47, 25, 28],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.85)',
+                            'rgba(250, 112, 154, 0.85)',
+                            'rgba(67, 233, 123, 0.85)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(250, 112, 154, 1)',
+                            'rgba(67, 233, 123, 1)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 18,
+                                font: { size: 13 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            padding: 14,
+                            cornerRadius: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // 2. Monthly Trend Line Chart
+            const trendCtx = document.getElementById('trendLineChart').getContext('2d');
+            const gradient = trendCtx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 172, 254, 0.4)');
+            gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
+
+            const savingsData = [2100, 3200, 4500, 5100, 6800, 7200, 8420];
+
+            charts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: t('chart_months'),
+                    datasets: [{
+                        label: t('chart_savings_label'),
+                        data: savingsData,
+                        borderColor: '#4facfe',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#4facfe',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#4facfe',
+                        pointHoverBorderWidth: 3
+                    }, {
+                        label: t('chart_target_label'),
+                        data: new Array(7).fill(3700),
+                        borderColor: 'rgba(67, 233, 123, 0.6)',
+                        borderWidth: 2,
+                        borderDash: [8, 4],
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 18,
+                                font: { size: 12 },
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            padding: 14,
+                            cornerRadius: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        const percentage = (context.parsed.y / 18500 * 100).toFixed(1);
+                                        return [
+                                            `${t('chart_tooltip_savings')}: ₪${context.parsed.y.toLocaleString()}`,
+                                            `${percentage}${t('chart_tooltip_of_income')}`
+                                        ];
+                                    }
+                                    return context.dataset.label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₪' + value.toLocaleString();
+                                },
+                                font: { size: 11 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. Category Donut Chart
+            const categoryValues = [3200, 4500, 1800, 1200, 2100, 800, 500, 600];
+
+            const donutCtx = document.getElementById('categoryDonutChart').getContext('2d');
+            charts.donut = new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: t('chart_categories'),
+                    datasets: [{
+                        data: categoryValues,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.9)',
+                            'rgba(250, 112, 154, 0.9)',
+                            'rgba(79, 172, 254, 0.9)',
+                            'rgba(67, 233, 123, 0.9)',
+                            'rgba(254, 225, 64, 0.9)',
+                            'rgba(245, 87, 108, 0.9)',
+                            'rgba(48, 207, 208, 0.9)',
+                            'rgba(168, 237, 234, 0.9)'
+                        ],
+                        borderColor: 'rgba(0, 0, 0, 0.2)',
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '55%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 10,
+                                font: { size: 10 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return [
+                                        context.label,
+                                        `₪${context.parsed.toLocaleString()}`,
+                                        `${percentage}${t('chart_tooltip_total')}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 4. Category Bar Chart
+            const barCtx = document.getElementById('categoryBarChart').getContext('2d');
+            charts.bar = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: t('chart_categories'),
+                    datasets: [{
+                        label: t('chart_category_label'),
+                        data: categoryValues,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.9)',
+                            'rgba(250, 112, 154, 0.9)',
+                            'rgba(79, 172, 254, 0.9)',
+                            'rgba(67, 233, 123, 0.9)',
+                            'rgba(254, 225, 64, 0.9)',
+                            'rgba(245, 87, 108, 0.9)',
+                            'rgba(48, 207, 208, 0.9)',
+                            'rgba(168, 237, 234, 0.9)'
+                        ],
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    return '₪' + context.parsed.x.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₪' + value.toLocaleString();
+                                },
+                                font: { size: 10 }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts when language changes
+        function updateCharts() {
+            const fontFamily = currentLang === 'he' ? "'Heebo', sans-serif" : "'Outfit', sans-serif";
+            Chart.defaults.font.family = fontFamily;
+
+            // Update rule chart
+            charts.rule.data.labels = t('chart_rule_labels');
+            charts.rule.update('none');
+
+            // Update trend chart
+            charts.trend.data.labels = t('chart_months');
+            charts.trend.data.datasets[0].label = t('chart_savings_label');
+            charts.trend.data.datasets[1].label = t('chart_target_label');
+            charts.trend.update('none');
+
+            // Update donut chart
+            charts.donut.data.labels = t('chart_categories');
+            charts.donut.update('none');
+
+            // Update bar chart
+            charts.bar.data.labels = t('chart_categories');
+            charts.bar.data.datasets[0].label = t('chart_category_label');
+            charts.bar.update('none');
+        }
+
+        // KPI card mouse tracking effect
+        document.querySelectorAll('.kpi-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--mouse-x', x + '%');
+                card.style.setProperty('--mouse-y', y + '%');
+            });
+        });
+
+        // Scroll animations
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.chart-section').forEach(section => {
+            section.classList.add('animate-on-scroll');
+            scrollObserver.observe(section);
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initCharts);
+    </script>
+</body>
+</html>

@@ -2,6 +2,12 @@
 
 MoneyMate is a Flask web app for importing credit card statements, categorizing expenses, and reviewing monthly spending with a bilingual Hebrew/English interface.
 
+## Preview
+
+[![MoneyMate demo preview](docs/preview.png)](https://tomsand93.github.io/money-mate/marketing-demo.html)
+
+[View live demo →](https://tomsand93.github.io/money-mate/marketing-demo.html)
+
 ## What It Does
 
 - Imports `.xlsx` and `.xls` expense statements
